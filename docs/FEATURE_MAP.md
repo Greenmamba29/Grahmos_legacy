@@ -17,3 +17,14 @@ edge tiers. A row is "done" only when its tests and gates exist here.
 | 8   | Tier 2 facility edge: store-and-forward relay, pack registry, optional ingestion sidecar                                                | planned          |                                                                                        |
 | 9   | Resilience audit (NFPA travel-distance proxy, redundancy, bridges) and CMS evidence report                                              | planned          | `distancesFromAny` exists for it                                                       |
 | 10  | Localisation (es, ar) of safety strings                                                                                                 | planned          |                                                                                        |
+
+## GrahmOS 2.0 — next slices (from docs/OSS_LANDSCAPE.md and ADR 0003)
+
+| #   | Slice                                                                         | Depends on           | Status  |
+| --- | ----------------------------------------------------------------------------- | -------------------- | ------- |
+| 12  | RFC 9171 bundle layer over signed envelopes (custody, lifetime, dedupe)       | dtn7-rs on the relay | planned |
+| 13  | BLE transport on the bitchat wire format, in a native agent (iOS/Android)     | bitchat protocol     | planned |
+| 14  | Wi-Fi Aware bulk transfer for packs and tiles (iOS 26 / Android)              | platform APIs        | planned |
+| 15  | ZIM registry on the relay with Tantivy search; device search over ZIM indexes | Kiwix/libzim         | planned |
+| 16  | Subway simulation harness (SubwayMeshDTN model) as a CI gate                  | —                    | planned |
+| 17  | Field day on one line, two stations (docs/SUBWAY_TEST.md)                     | 12–16                | planned |
