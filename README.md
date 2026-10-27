@@ -11,7 +11,14 @@ The reference implementation is [`Greenmamba29/Grahmos_terranova`](https://githu
 Each GrahmOS feature is re-implemented here in order, with its claim boundary stated and a gate
 that enforces it. See [docs/FEATURE_MAP.md](docs/FEATURE_MAP.md) for the sequence and status.
 
-## Feature 1 (this release): offline-first resilience, emergency communications, SafetyMap
+## What is rebuilt so far
+
+Features 1–11 of the [feature map](docs/FEATURE_MAP.md): the Tier-0 life-safety path, trust
+hardening, importers, local search, the georeferenced site map, positioning, the Tier-1 facility
+relay, the resilience audit and evidence report, localisation, and CoT export. The remaining item is
+the Tier-2 facility edge (pack registry and store-and-forward across restarts for packs).
+
+### Feature 1: offline-first resilience, emergency communications, SafetyMap
 
 | Capability                                                                                                                                     | Where                                         | Proof                           |
 | ---------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- | ------------------------------- |

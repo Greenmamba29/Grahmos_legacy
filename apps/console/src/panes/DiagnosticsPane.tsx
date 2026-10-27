@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import {
   auditFloor,
+  buildComplianceReport,
+  renderComplianceMarkdown,
   cotEntitiesForFloor,
   toCotDocument,
   type OutboxEnvelope,
@@ -156,6 +158,36 @@ export function DiagnosticsPane({ lastRoute }: { lastRoute: RouteSummary | null 
             </button>
           ))}
         </div>
+        {s.pack && (
+          <div className="row">
+            {s.pack.pack.levels.map((l) => (
+              <button
+                key={`c-${l.id}`}
+                className="ghost small"
+                onClick={() => {
+                  const pack = s.pack!.pack;
+                  const md = renderComplianceMarkdown(
+                    buildComplianceReport({
+                      floor: pack.floors[l.name]!,
+                      venueName: pack.manifest.venue_name,
+                      level: l.name,
+                      incidents: [...s.incidents.values()],
+                      relayConfigured: s.relayUrl !== null,
+                    }),
+                  );
+                  const url = URL.createObjectURL(new Blob([md], { type: 'text/markdown' }));
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `${pack.manifest.venue_slug}-${l.name}-482.15-evidence.md`;
+                  a.click();
+                  setTimeout(() => URL.revokeObjectURL(url), 1000);
+                }}
+              >
+                §482.15 evidence: {l.name}
+              </button>
+            ))}
+          </div>
+        )}
         {audit && (
           <div>
             <p>

@@ -17,6 +17,9 @@ import {
   type BuildInput,
   dxfToFloor,
   osmToFloor,
+  ifcToFloor,
+  buildComplianceReport,
+  renderComplianceMarkdown,
   auditFloor,
   renderAuditMarkdown,
   cotEntitiesForFloor,
@@ -41,6 +44,10 @@ const HELP = `terranova — TerraNova venue-pack and resilience tooling
       Convert a flattened CAD export (layer convention in core/importers/dxf.ts) into the floor contract.
   terranova floor from-osm <export.osm> <out.geojson> [--level <n>] [--anchor lng,lat]
       Convert an OSM Simple-Indoor-Tagging export into the floor contract (spine synthesised from doors).
+  terranova floor from-ifc <model.ifc> <out.geojson> [--storey <index>] [--scale 0.001]
+      Convert an IFC (STEP) export into the floor contract (spaces, doors, stairs; spine synthesised).
+  terranova report compliance <floor.geojson> --venue <name> [--level <name>]
+      42 CFR §482.15 evidence report (markdown) derived from the floor and its routing.
   terranova export cot <floor.geojson> <out.cot.xml> --anchor lng,lat --venue <slug> [--level <name>]
       Cursor-on-Target document (ATAK/WinTAK/iTAK) of the floor's exits, AEDs, refuges and stairs.
   terranova audit floor <floor.geojson> [--level <name>] [--unsprinklered] [--json]
@@ -149,6 +156,39 @@ export async function main(argv: string[]): Promise<number> {
       return 1;
     }
     console.log('gate: ok');
+    return 0;
+  }
+  if (cmd === 'floor' && sub === 'from-ifc') {
+    const [input, out] = rest;
+    if (!input || !out) throw new Error('usage: floor from-ifc <model.ifc> <out.geojson>');
+    const storeyIndex = Number(arg('--storey', rest) ?? '0');
+    const report = ifcToFloor(await readFile(input, 'utf8'), {
+      storeyIndex,
+      transform: { scale: Number(arg('--scale', rest) ?? '1') },
+    });
+    await writeBytes(out, new TextEncoder().encode(JSON.stringify(report.floor)));
+    console.log(
+      `wrote ${out}: storey ${report.storey ?? '(none)'} ${JSON.stringify(report.counts)}${report.inferredOpenings ? ` (${report.inferredOpenings} openings INFERRED at room centroids)` : ''}`,
+    );
+    const failures = gateFloors([{ id: 'x', name: out, ordinal: 0 }], { [out]: report.floor });
+    if (failures.length) {
+      console.error('GATE FAILED for the converted floor:');
+      console.error(JSON.stringify(failures, null, 2));
+      return 1;
+    }
+    console.log('gate: ok');
+    return 0;
+  }
+  if (cmd === 'report' && sub === 'compliance') {
+    const file = rest[0];
+    const venue = arg('--venue', rest);
+    if (!file || !venue) throw new Error('usage: report compliance <floor.geojson> --venue <name>');
+    const floor = await readJson<Parameters<typeof buildComplianceReport>[0]['floor']>(file);
+    console.log(
+      renderComplianceMarkdown(
+        buildComplianceReport({ floor, venueName: venue, level: arg('--level', rest) ?? file }),
+      ),
+    );
     return 0;
   }
   if (cmd === 'export' && sub === 'cot') {
