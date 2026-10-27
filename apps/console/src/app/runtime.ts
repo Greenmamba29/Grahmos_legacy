@@ -31,11 +31,17 @@ import {
   type PackFailure,
 } from '../data/packs';
 import { configuredTransport, SYNC_URL } from '../data/transport';
+import { loadDeviceKey, rotateDeviceKey, seedBytes, type DeviceKey } from '../data/deviceKey';
+import { signCheckpoint, type Checkpoint } from '@terranova/core';
+import { LocalSearch, buildCorpus } from '@terranova/core';
 
 export interface RuntimeState {
   booted: boolean;
   bootError: string | null;
   identity: DeviceIdentity | null;
+  deviceKey: DeviceKey | null;
+  search: LocalSearch | null;
+  lastCheckpoint: Checkpoint | null;
   pack: InstalledPack | null;
   packFailure: PackFailure | null;
   packBusy: boolean;
@@ -65,6 +71,9 @@ export class Runtime {
       booted: false,
       bootError: null,
       identity: null,
+      deviceKey: null,
+      search: null,
+      lastCheckpoint: null,
       pack: null,
       packFailure: null,
       packBusy: false,
@@ -101,6 +110,7 @@ export class Runtime {
   async boot(): Promise<void> {
     try {
       const identity = await loadIdentity(this.d);
+      const deviceKey = await loadDeviceKey(this.d);
       const seq = await getSetting<number>('seq', 0, this.d);
       const comms = new CommsService({
         log: new EventLog(new DexieEventLogStore(this.d)),
@@ -115,10 +125,11 @@ export class Runtime {
       this.comms = comms;
       comms.subscribe((incidents) => {
         this.set({ incidents });
+        this.rebuildSearch();
         void this.refreshPending();
       });
       await comms.init();
-      this.set({ identity });
+      this.set({ identity, deviceKey });
 
       // Pack: local first, bundled fixture only when nothing is installed yet.
       let pack: InstalledPack | null = null;
@@ -136,6 +147,7 @@ export class Runtime {
         }
       }
       this.set({ pack, packFailure, booted: true });
+      this.rebuildSearch();
 
       void this.probeStorage();
       void this.probeShellCache();
@@ -167,6 +179,7 @@ export class Runtime {
         pack = (await openInstalledPack(this.d))!;
       } else pack = await fetchAndInstall(this.d, entry.url, 'bundled');
       this.set({ pack, packFailure: null });
+      this.rebuildSearch();
     } catch (e) {
       this.set({ packFailure: describeFailure(e) });
     } finally {
@@ -180,12 +193,48 @@ export class Runtime {
     try {
       const pack = await installPackBytes(this.d, new Uint8Array(await file.arrayBuffer()), 'file');
       this.set({ pack, packFailure: null });
+      this.rebuildSearch();
     } catch (e) {
       this.set({ packFailure: describeFailure(e) });
     } finally {
       this.set({ packBusy: false });
       this.recomputeReadiness();
     }
+  }
+
+  // ------------------------------------------------------------------ search
+  private rebuildSearch(): void {
+    const pack = this.state.pack?.pack;
+    const search = new LocalSearch(
+      buildCorpus({
+        procedures: pack?.procedures ?? null,
+        floors: pack?.floors ?? {},
+        incidents: this.state.incidents.values(),
+      }),
+    );
+    this.set({ search });
+  }
+
+  // ------------------------------------------------------------------ trust
+  /** Sign the current chain head with the device key. */
+  async signCheckpointNow(): Promise<Checkpoint | null> {
+    const key = this.state.deviceKey;
+    const id = this.state.identity;
+    if (!key || !id || !this.comms) return null;
+    const links = await this.comms.eventLog.load();
+    const head = links.at(-1)?.hash ?? 'genesis';
+    const cp = signCheckpoint(
+      { deviceId: id.deviceId, headHash: head, count: links.length, at: new Date().toISOString() },
+      seedBytes(key),
+    );
+    await setSetting('lastCheckpoint', cp, this.d);
+    this.set({ lastCheckpoint: cp });
+    return cp;
+  }
+
+  async rotateKey(): Promise<void> {
+    const deviceKey = await rotateDeviceKey(this.d);
+    this.set({ deviceKey, lastCheckpoint: null });
   }
 
   // ------------------------------------------------------------------ identity

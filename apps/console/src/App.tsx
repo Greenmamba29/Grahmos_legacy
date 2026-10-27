@@ -16,8 +16,9 @@ import { IncidentPane } from './panes/IncidentPane';
 import { CommsPane } from './panes/CommsPane';
 import { RoutingPane } from './panes/RoutingPane';
 import { DiagnosticsPane } from './panes/DiagnosticsPane';
+import { SearchPane } from './panes/SearchPane';
 
-type Module = 'incidents' | 'comms' | 'routing' | 'diagnostics';
+type Module = 'incidents' | 'comms' | 'routing' | 'search' | 'diagnostics';
 
 export default function App() {
   const rt = useRuntime();
@@ -47,8 +48,10 @@ export default function App() {
   useEffect(() => {
     setOrigin(null);
     setPendingHazard(null);
-    setDestination(null);
   }, [venueSlug, activeLevel?.name]);
+  useEffect(() => {
+    setDestination(null);
+  }, [venueSlug]);
 
   const incidents = useMemo(
     () =>
@@ -144,7 +147,7 @@ export default function App() {
       )}
 
       <nav className="rail" aria-label="Console modules">
-        {(['incidents', 'comms', 'routing', 'diagnostics'] as Module[]).map((m) => (
+        {(['incidents', 'comms', 'routing', 'search', 'diagnostics'] as Module[]).map((m) => (
           <button key={m} className={m === module ? 'on' : ''} onClick={() => setModule(m)}>
             {m}
             {m === 'incidents' && live.length > 0 && <span className="badge">{live.length}</span>}
@@ -256,6 +259,19 @@ export default function App() {
               clickMode={clickMode}
               onClickMode={setClickMode}
               onClearOrigin={() => setOrigin(null)}
+            />
+          )}
+          {module === 'search' && (
+            <SearchPane
+              onFocus={(hit) => {
+                if (hit.level) setLevelName(hit.level);
+                if (hit.source === 'poi' && hit.nodeId) {
+                  setDestination(hit.nodeId);
+                  setModule('routing');
+                } else if (hit.xy) {
+                  setOrigin({ x: hit.xy[0], y: hit.xy[1] });
+                }
+              }}
             />
           )}
           {module === 'diagnostics' && <DiagnosticsPane lastRoute={plan?.primary ?? null} />}

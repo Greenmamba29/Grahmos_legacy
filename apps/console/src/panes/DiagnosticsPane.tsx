@@ -33,6 +33,7 @@ export function DiagnosticsPane({ lastRoute }: { lastRoute: RouteSummary | null 
       chain: links,
       outbox: await rt.pendingEnvelopes(),
       lastRoute,
+      checkpoint: (await rt.signCheckpointNow()) ?? s.lastCheckpoint,
     });
     downloadJson(`terranova-evidence-${new Date().toISOString().replace(/[:.]/g, '-')}.json`, pkg);
   };

@@ -1,5 +1,7 @@
 import {
   verifyChain,
+  verifyCheckpoint,
+  type Checkpoint,
   type ReadinessReport,
   type ConnectivityState,
   type Sealed,
@@ -48,6 +50,7 @@ export interface EvidencePackage {
     >;
   };
   lastRoute: RouteSummary | null;
+  checkpoint: (Checkpoint & { verified: boolean; matchesHead: boolean }) | null;
   degradedReasons: string[];
 }
 
@@ -60,6 +63,7 @@ export function buildEvidence(input: {
   chain: Array<Sealed<IncidentEvent>>;
   outbox: OutboxEnvelope[];
   lastRoute: RouteSummary | null;
+  checkpoint: Checkpoint | null;
 }): EvidencePackage {
   const verification = verifyChain(input.chain);
   return {
@@ -103,6 +107,13 @@ export function buildEvidence(input: {
       })),
     },
     lastRoute: input.lastRoute,
+    checkpoint: input.checkpoint
+      ? {
+          ...input.checkpoint,
+          verified: verifyCheckpoint(input.checkpoint).ok,
+          matchesHead: input.checkpoint.headHash === (input.chain.at(-1)?.hash ?? 'genesis'),
+        }
+      : null,
     degradedReasons: input.readiness?.reasons ?? [],
   };
 }
