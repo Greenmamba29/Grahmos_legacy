@@ -1,0 +1,6 @@
+dist
+node_modules
+dev-dist
+*.pmtiles
+*.zip
+package-lock.json

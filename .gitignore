@@ -1,0 +1,13 @@
+node_modules/
+dist/
+dev-dist/
+coverage/
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+# Private signing keys never enter the repository.
+*.key
+*.seed
+dist-types/
