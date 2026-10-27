@@ -34,7 +34,7 @@ import { configuredTransport, SYNC_URL } from '../data/transport';
 import { loadDeviceKey, rotateDeviceKey, seedBytes, type DeviceKey } from '../data/deviceKey';
 import { DexieDeviceKeyStore, loadRelayUrl, makeRelayClient, saveRelayUrl } from '../data/relay';
 import type { Transport } from '@terranova/core';
-import { dirFor, isLang, type Lang } from '@terranova/core';
+import { dirFor, isLang, PackVerifyError, type Lang } from '@terranova/core';
 import { signCheckpoint, type Checkpoint } from '@terranova/core';
 import { LocalSearch, buildCorpus } from '@terranova/core';
 
@@ -389,6 +389,50 @@ export class Runtime {
     if (typeof document === 'undefined') return;
     document.documentElement.lang = language;
     document.documentElement.dir = dirFor(language);
+  }
+
+  /** Tier 2: packs published on the facility relay. Listing only; install re-verifies on device. */
+  async listRelayPacks(): Promise<
+    Array<{
+      slug: string;
+      version: string;
+      venue_name: string;
+      validation: string;
+      signedBy: string | null;
+    }>
+  > {
+    if (!this.state.relayUrl) return [];
+    const res = await fetch(`${this.state.relayUrl.replace(/\/$/, '')}/v1/packs`, {
+      cache: 'no-store',
+    });
+    if (!res.ok) throw new Error(`relay packs HTTP ${res.status}`);
+    return (await res.json()) as Array<{
+      slug: string;
+      version: string;
+      venue_name: string;
+      validation: string;
+      signedBy: string | null;
+    }>;
+  }
+
+  async installFromRelay(slug: string): Promise<void> {
+    if (!this.state.relayUrl) return;
+    this.set({ packBusy: true });
+    try {
+      const res = await fetch(
+        `${this.state.relayUrl.replace(/\/$/, '')}/v1/packs/${encodeURIComponent(slug)}`,
+        { cache: 'no-store' },
+      );
+      if (!res.ok) throw new PackVerifyError('format', `relay pack HTTP ${res.status}`);
+      const pack = await installPackBytes(this.d, new Uint8Array(await res.arrayBuffer()), 'url');
+      this.set({ pack, packFailure: null });
+      this.rebuildSearch();
+    } catch (e) {
+      this.set({ packFailure: describeFailure(e) });
+    } finally {
+      this.set({ packBusy: false });
+      this.recomputeReadiness();
+    }
   }
 
   async setRelayUrl(url: string | null): Promise<void> {

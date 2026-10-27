@@ -6,11 +6,14 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import {
   MemoryDeviceKeyStore,
+  MemoryPackRegistryStore,
   MemoryRelayLogStore,
+  PackRegistry,
   RELAY_PATHS,
   RelayCore,
   type DeviceKeyStore,
   type Envelope,
+  type PackRegistryStore,
   type RelayHealth,
   type RelayLogStore,
 } from '@terranova/core';
@@ -19,8 +22,11 @@ export interface RelayServerOptions {
   relayId?: string;
   log?: RelayLogStore;
   keys?: DeviceKeyStore;
-  /** Max accepted body size in bytes. */
+  packs?: PackRegistryStore;
+  /** Max accepted body size in bytes (envelopes). */
   maxBodyBytes?: number;
+  /** Max accepted pack size in bytes. */
+  maxPackBytes?: number;
 }
 
 const CORS = {
@@ -34,7 +40,7 @@ function json(res: ServerResponse, status: number, body: unknown): void {
   res.end(JSON.stringify(body));
 }
 
-async function readBody(req: IncomingMessage, max: number): Promise<string> {
+async function readBytes(req: IncomingMessage, max: number): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     let size = 0;
     const chunks: Buffer[] = [];
@@ -47,18 +53,26 @@ async function readBody(req: IncomingMessage, max: number): Promise<string> {
       }
       chunks.push(c);
     });
-    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    req.on('end', () => resolve(Buffer.concat(chunks)));
     req.on('error', reject);
   });
 }
+const readBody = async (req: IncomingMessage, max: number): Promise<string> =>
+  (await readBytes(req, max)).toString('utf8');
 
-export function createRelay(opts: RelayServerOptions = {}): { server: Server; core: RelayCore } {
+export function createRelay(opts: RelayServerOptions = {}): {
+  server: Server;
+  core: RelayCore;
+  registry: PackRegistry;
+} {
   const core = new RelayCore(
     opts.relayId ?? `relay-${Math.random().toString(36).slice(2, 8)}`,
     opts.log ?? new MemoryRelayLogStore(),
     opts.keys ?? new MemoryDeviceKeyStore(),
   );
+  const registry = new PackRegistry(opts.packs ?? new MemoryPackRegistryStore());
   const max = opts.maxBodyBytes ?? 256 * 1024;
+  const maxPack = opts.maxPackBytes ?? 64 * 1024 * 1024;
   const server = createServer(async (req, res) => {
     try {
       const url = new URL(req.url ?? '/', 'http://relay');
@@ -101,10 +115,48 @@ export function createRelay(opts: RelayServerOptions = {}): { server: Server; co
         );
         return;
       }
+      if (req.method === 'POST' && url.pathname === RELAY_PATHS.packs) {
+        let bytes: Buffer;
+        try {
+          bytes = await readBytes(req, maxPack);
+        } catch (e) {
+          json(res, 413, { reason: e instanceof Error ? e.message : String(e) });
+          return;
+        }
+        const r = await registry.publish(new Uint8Array(bytes));
+        if (r.status === 'rejected') json(res, 422, { stage: r.stage, reason: r.reason });
+        else
+          json(res, r.status === 'duplicate' ? 409 : 201, {
+            slug: r.entry.slug,
+            version: r.entry.version,
+            signedBy: r.entry.signedBy,
+          });
+        return;
+      }
+      if (req.method === 'GET' && url.pathname === RELAY_PATHS.packs) {
+        json(res, 200, await registry.list());
+        return;
+      }
+      if (req.method === 'GET' && url.pathname.startsWith(`${RELAY_PATHS.packs}/`)) {
+        const slug = decodeURIComponent(url.pathname.slice(RELAY_PATHS.packs.length + 1));
+        const entry = await registry.get(slug);
+        if (!entry) {
+          json(res, 404, { reason: `no pack published for ${slug}` });
+          return;
+        }
+        res.writeHead(200, {
+          'content-type': 'application/zip',
+          'x-pack-version': entry.version,
+          ...CORS,
+          'access-control-expose-headers': 'x-pack-version',
+        });
+        res.end(Buffer.from(entry.bytes));
+        return;
+      }
       json(res, 404, { reason: 'not found' });
     } catch (e) {
       json(res, 500, { reason: e instanceof Error ? e.message : String(e) });
     }
   });
-  return { server, core };
+  return { server, core, registry };
 }

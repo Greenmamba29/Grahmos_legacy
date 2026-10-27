@@ -52,6 +52,8 @@ const HELP = `terranova — TerraNova venue-pack and resilience tooling
       Cursor-on-Target document (ATAK/WinTAK/iTAK) of the floor's exits, AEDs, refuges and stairs.
   terranova audit floor <floor.geojson> [--level <name>] [--unsprinklered] [--json]
       Resilience audit: exit coverage, AED reach, corridor redundancy, accessible egress, hazard hotspots.
+  terranova relay publish <pack.zip> --relay <url>
+      Publish a signed pack to a facility relay's registry (the relay verifies before storing).
   terranova keygen
       Print a fresh Ed25519 seed + public key (hex). The seed is a SECRET.
 `;
@@ -75,6 +77,28 @@ export async function main(argv: string[]): Promise<number> {
   if (!cmd || cmd === '--help' || cmd === '-h') {
     console.log(HELP);
     return 0;
+  }
+  if (cmd === 'relay' && sub === 'publish') {
+    const file = rest[0];
+    const relay = arg('--relay', rest);
+    if (!file || !relay) throw new Error('usage: relay publish <pack.zip> --relay <url>');
+    const bytes = await readFile(file);
+    const res = await fetch(`${relay.replace(/\/$/, '')}/v1/packs`, {
+      method: 'POST',
+      body: bytes,
+      headers: { 'content-type': 'application/zip' },
+    });
+    const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (res.status === 201 || res.status === 409) {
+      console.log(
+        `${res.status === 201 ? 'published' : 'already published'} ${String(body.slug)}@${String(body.version)} to ${relay}`,
+      );
+      return 0;
+    }
+    console.error(
+      `REJECTED by relay (${res.status}): ${String(body.stage ?? '')} ${String(body.reason ?? '')}`,
+    );
+    return 1;
   }
   if (cmd === 'keygen') {
     const seed = randomSeed();

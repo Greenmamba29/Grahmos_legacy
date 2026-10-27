@@ -13,10 +13,11 @@ that enforces it. See [docs/FEATURE_MAP.md](docs/FEATURE_MAP.md) for the sequenc
 
 ## What is rebuilt so far
 
-Features 1–11 of the [feature map](docs/FEATURE_MAP.md): the Tier-0 life-safety path, trust
+Every row of the [feature map](docs/FEATURE_MAP.md): the Tier-0 life-safety path, trust
 hardening, importers, local search, the georeferenced site map, positioning, the Tier-1 facility
-relay, the resilience audit and evidence report, localisation, and CoT export. The remaining item is
-the Tier-2 facility edge (pack registry and store-and-forward across restarts for packs).
+relay, the Tier-2 pack registry on that relay, the resilience audit and evidence report,
+localisation, and CoT export. What is deliberately not adopted is listed in the map and in
+[docs/CLAIMS.md](docs/CLAIMS.md).
 
 ### Feature 1: offline-first resilience, emergency communications, SafetyMap
 

@@ -11,7 +11,7 @@
 import { spawn } from 'node:child_process';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { createRequire } from 'node:module';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -111,6 +111,22 @@ try {
   await A.getByRole('button', { name: /^comms/ }).click();
   await A.waitForSelector('text=1 ack', { timeout: 15000 });
   step("A: received B's acknowledgement (the receipt)");
+
+  // Tier 2: publish the hospital fixture pack to the relay's registry, then install it on B from the relay.
+  const zip = readFileSync(join(root, 'apps/console/public/packs/harbor-general-hospital.zip'));
+  const pub = await fetch(`http://127.0.0.1:${RELAY}/v1/packs`, {
+    method: 'POST',
+    body: zip,
+    headers: { 'content-type': 'application/zip' },
+  });
+  if (pub.status !== 201) throw new Error(`relay refused the fixture pack: HTTP ${pub.status}`);
+  await B.getByRole('button', { name: /^diagnostics/ }).click();
+  await B.getByRole('button', { name: 'List packs on relay' }).click();
+  await B.getByRole('button', { name: /Install \(re-verified on device\)/ }).click();
+  await B.waitForSelector('text=Harbor General Hospital', { timeout: 15000 });
+  step(
+    'B: installed a pack published on the relay (re-verified on device); map switched to the hospital',
+  );
   console.log('RELAY DRILL PASSED');
 } catch (e) {
   console.error('RELAY DRILL FAILED:', e.message);

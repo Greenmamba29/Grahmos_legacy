@@ -15,6 +15,9 @@ import {
 import { randomSeed } from '@terranova/core/crypto';
 import { createRelay } from './server.js';
 import { FileRelayLogStore } from './fileStore.js';
+import { FilePackRegistryStore } from './packStore.js';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 const dir = mkdtempSync(join(tmpdir(), 'tn-relay-'));
 const logPath = join(dir, 'log.jsonl');
@@ -22,7 +25,11 @@ let base = '';
 let stop: () => Promise<void>;
 
 beforeAll(async () => {
-  const { server } = createRelay({ relayId: 'test-relay', log: new FileRelayLogStore(logPath) });
+  const { server } = createRelay({
+    relayId: 'test-relay',
+    log: new FileRelayLogStore(logPath),
+    packs: new FilePackRegistryStore(join(dir, 'packs')),
+  });
   await new Promise<void>((r) => server.listen(0, '127.0.0.1', () => r()));
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   stop = () => new Promise((r) => server.close(() => r()));
@@ -92,5 +99,31 @@ describe('relay over real HTTP with a file log', () => {
       headers: { 'content-type': 'application/json' },
     });
     expect(bad.status).toBe(400);
+  });
+
+  it('pack registry: publish a signed fixture, list it, fetch bytes, refuse junk, survive restart', async () => {
+    const zip = readFileSync(
+      resolve(__dirname, '../../../apps/console/public/packs/harbor-general-hospital.zip'),
+    );
+    const pub = await fetch(`${base}/v1/packs`, {
+      method: 'POST',
+      body: zip,
+      headers: { 'content-type': 'application/zip' },
+    });
+    expect(pub.status).toBe(201);
+    expect(await pub.json()).toMatchObject({ slug: 'harbor-general-hospital', version: '1.0.0' });
+    expect((await fetch(`${base}/v1/packs`, { method: 'POST', body: zip })).status).toBe(409);
+    const junk = await fetch(`${base}/v1/packs`, { method: 'POST', body: 'not a zip' });
+    expect(junk.status).toBe(422);
+    const list = (await (await fetch(`${base}/v1/packs`)).json()) as Array<{ slug: string }>;
+    expect(list.map((l) => l.slug)).toEqual(['harbor-general-hospital']);
+    const got = await fetch(`${base}/v1/packs/harbor-general-hospital`);
+    expect(got.headers.get('x-pack-version')).toBe('1.0.0');
+    expect(Buffer.from(await got.arrayBuffer()).equals(zip)).toBe(true);
+    const again = createRelay({
+      relayId: 'test-relay',
+      packs: new FilePackRegistryStore(join(dir, 'packs')),
+    });
+    expect((await again.registry.list()).length).toBe(1);
   });
 });

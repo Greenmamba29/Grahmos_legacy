@@ -22,6 +22,14 @@ export function DiagnosticsPane({ lastRoute }: { lastRoute: RouteSummary | null 
   const [role, setRole] = useState(s.identity?.role ?? 'operator');
   const [audit, setAudit] = useState<ResilienceAudit | null>(null);
   const [relayUrl, setRelayUrl] = useState(s.relayUrl ?? '');
+  const [relayPacks, setRelayPacks] = useState<Array<{
+    slug: string;
+    version: string;
+    venue_name: string;
+    validation: string;
+    signedBy: string | null;
+  }> | null>(null);
+  const [relayPacksError, setRelayPacksError] = useState<string | null>(null);
   useEffect(() => setRelayUrl(s.relayUrl ?? ''), [s.relayUrl]);
 
   useEffect(() => {
@@ -259,6 +267,48 @@ export function DiagnosticsPane({ lastRoute }: { lastRoute: RouteSummary | null 
             Sync now
           </button>
         </div>
+        {s.relayUrl && (
+          <div className="row">
+            <button
+              onClick={() =>
+                void rt
+                  .listRelayPacks()
+                  .then((l) => {
+                    setRelayPacks(l);
+                    setRelayPacksError(null);
+                  })
+                  .catch((e: unknown) =>
+                    setRelayPacksError(e instanceof Error ? e.message : String(e)),
+                  )
+              }
+            >
+              List packs on relay
+            </button>
+            {relayPacksError && <span className="error small">{relayPacksError}</span>}
+          </div>
+        )}
+        {relayPacks && (
+          <ul className="small list">
+            {relayPacks.length === 0 && (
+              <li className="muted">No packs published on this relay.</li>
+            )}
+            {relayPacks.map((p) => (
+              <li key={p.slug} className="row">
+                <span>
+                  {p.venue_name} v{p.version} · {p.validation}
+                  {p.signedBy ? ` · signed by ${p.signedBy}` : ' · UNSIGNED'}
+                </span>
+                <button
+                  className="small"
+                  disabled={s.packBusy}
+                  onClick={() => void rt.installFromRelay(p.slug)}
+                >
+                  Install (re-verified on device)
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
         {s.relayUrl && (
           <p className="small">
             cursor {s.relayCursor} · ingested {s.relayIngested} · rejected {s.relayRejected} ·{' '}
