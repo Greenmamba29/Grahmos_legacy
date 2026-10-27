@@ -16,8 +16,11 @@ import {
   type PackManifest,
   type BuildInput,
   dxfToFloor,
+  osmToFloor,
   auditFloor,
   renderAuditMarkdown,
+  cotEntitiesForFloor,
+  toCotDocument,
 } from '@terranova/core';
 import { fromHex, toHex, publicKeyFromSeed, randomSeed } from '@terranova/core/crypto';
 
@@ -36,6 +39,10 @@ const HELP = `terranova — TerraNova venue-pack and resilience tooling
       Run the floor contract + routability gate on floor files. Exit 1 on failure.
   terranova floor from-dxf <plan.dxf> <out.geojson> [--scale 0.001] [--origin-x n --origin-y n] [--flip-y]
       Convert a flattened CAD export (layer convention in core/importers/dxf.ts) into the floor contract.
+  terranova floor from-osm <export.osm> <out.geojson> [--level <n>] [--anchor lng,lat]
+      Convert an OSM Simple-Indoor-Tagging export into the floor contract (spine synthesised from doors).
+  terranova export cot <floor.geojson> <out.cot.xml> --anchor lng,lat --venue <slug> [--level <name>]
+      Cursor-on-Target document (ATAK/WinTAK/iTAK) of the floor's exits, AEDs, refuges and stairs.
   terranova audit floor <floor.geojson> [--level <name>] [--unsprinklered] [--json]
       Resilience audit: exit coverage, AED reach, corridor redundancy, accessible egress, hazard hotspots.
   terranova keygen
@@ -117,6 +124,49 @@ export async function main(argv: string[]): Promise<number> {
       return 1;
     }
     console.log('gate: ok (contract valid, every room reaches an exit, no suspect snaps)');
+    return 0;
+  }
+  if (cmd === 'floor' && sub === 'from-osm') {
+    const [input, out] = rest;
+    if (!input || !out) throw new Error('usage: floor from-osm <export.osm> <out.geojson>');
+    const anchorArg = arg('--anchor', rest);
+    const anchor = anchorArg
+      ? { lng: Number(anchorArg.split(',')[0]), lat: Number(anchorArg.split(',')[1]) }
+      : undefined;
+    const level = arg('--level', rest);
+    const report = osmToFloor(await readFile(input, 'utf8'), {
+      ...(anchor ? { anchor } : {}),
+      ...(level ? { level } : {}),
+    });
+    await writeBytes(out, new TextEncoder().encode(JSON.stringify(report.floor)));
+    console.log(
+      `wrote ${out}: level ${report.level ?? '(all)'} anchor ${report.anchor.lng},${report.anchor.lat} ${JSON.stringify(report.counts)}`,
+    );
+    const failures = gateFloors([{ id: 'x', name: out, ordinal: 0 }], { [out]: report.floor });
+    if (failures.length) {
+      console.error('GATE FAILED for the converted floor:');
+      console.error(JSON.stringify(failures, null, 2));
+      return 1;
+    }
+    console.log('gate: ok');
+    return 0;
+  }
+  if (cmd === 'export' && sub === 'cot') {
+    const [input, out] = rest;
+    const anchorArg = arg('--anchor', rest);
+    const venue = arg('--venue', rest);
+    if (!input || !out || !anchorArg || !venue)
+      throw new Error(
+        'usage: export cot <floor.geojson> <out.xml> --anchor lng,lat --venue <slug>',
+      );
+    const floor = await readJson<Parameters<typeof cotEntitiesForFloor>[0]>(input);
+    const anchor = { lng: Number(anchorArg.split(',')[0]), lat: Number(anchorArg.split(',')[1]) };
+    const ents = cotEntitiesForFloor(floor, arg('--level', rest) ?? 'Level');
+    await writeBytes(
+      out,
+      new TextEncoder().encode(toCotDocument(ents, { anchor, venueSlug: venue })),
+    );
+    console.log(`wrote ${out}: ${ents.length} CoT events`);
     return 0;
   }
   if (cmd === 'audit' && sub === 'floor') {

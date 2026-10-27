@@ -186,13 +186,11 @@ export function scoreRedundancy(ex: Extracted): CategoryScore {
   const spofs = findSpofs(ex);
   const worst = spofs[0]?.strandedRooms.length ?? 0;
   const total = ex.roomNodeIds.length || 1;
-  const findings: Finding[] = spofs
-    .slice(0, 5)
-    .map((s) => ({
-      severity: s.strandedRooms.length / total > 0.5 ? 'critical' : 'high',
-      message: `Cutting ${s.edge[0]} — ${s.edge[1]} strands ${s.strandedRooms.length} room(s): ${s.strandedRooms.map(roomLabel).join(', ')}`,
-      nodes: s.strandedRooms,
-    }));
+  const findings: Finding[] = spofs.slice(0, 5).map((s) => ({
+    severity: s.strandedRooms.length / total > 0.5 ? 'critical' : 'high',
+    message: `Cutting ${s.edge[0]} — ${s.edge[1]} strands ${s.strandedRooms.length} room(s): ${s.strandedRooms.map(roomLabel).join(', ')}`,
+    nodes: s.strandedRooms,
+  }));
   return {
     key: 'redundancy',
     label: 'Corridor redundancy',

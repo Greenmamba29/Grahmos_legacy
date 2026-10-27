@@ -64,10 +64,17 @@ export function catalogueParity(): Array<{ lang: Lang; key: string; problem: str
     for (const k of enKeys) {
       if (!(k in c)) out.push({ lang, key: k, problem: 'missing' });
       else if (!c[k]!.trim()) out.push({ lang, key: k, problem: 'empty' });
-      else if (placeholders(c[k]!) !== placeholders(CATALOGUES.en.strings[k]!)) out.push({ lang, key: k, problem: 'placeholder mismatch' });
-      else if (k.startsWith('instr.') && c[k]!.split('|').length !== CATALOGUES.en.strings[k]!.split('|').length) out.push({ lang, key: k, problem: 'instruction count differs' });
+      else if (placeholders(c[k]!) !== placeholders(CATALOGUES.en.strings[k]!))
+        out.push({ lang, key: k, problem: 'placeholder mismatch' });
+      else if (
+        k.startsWith('instr.') &&
+        c[k]!.split('|').length !== CATALOGUES.en.strings[k]!.split('|').length
+      )
+        out.push({ lang, key: k, problem: 'instruction count differs' });
     }
-    for (const k of Object.keys(c)) if (!(k in CATALOGUES.en.strings)) out.push({ lang, key: k, problem: 'not in English source' });
+    for (const k of Object.keys(c))
+      if (!(k in CATALOGUES.en.strings))
+        out.push({ lang, key: k, problem: 'not in English source' });
   }
   return out;
 }

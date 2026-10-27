@@ -4,7 +4,16 @@
  * security boundary is the envelope signature, not the browser origin.
  */
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
-import { MemoryDeviceKeyStore, MemoryRelayLogStore, RELAY_PATHS, RelayCore, type DeviceKeyStore, type Envelope, type RelayHealth, type RelayLogStore } from '@terranova/core';
+import {
+  MemoryDeviceKeyStore,
+  MemoryRelayLogStore,
+  RELAY_PATHS,
+  RelayCore,
+  type DeviceKeyStore,
+  type Envelope,
+  type RelayHealth,
+  type RelayLogStore,
+} from '@terranova/core';
 
 export interface RelayServerOptions {
   relayId?: string;
@@ -14,7 +23,11 @@ export interface RelayServerOptions {
   maxBodyBytes?: number;
 }
 
-const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-methods': 'GET,POST,OPTIONS', 'access-control-allow-headers': 'content-type' };
+const CORS = {
+  'access-control-allow-origin': '*',
+  'access-control-allow-methods': 'GET,POST,OPTIONS',
+  'access-control-allow-headers': 'content-type',
+};
 
 function json(res: ServerResponse, status: number, body: unknown): void {
   res.writeHead(status, { 'content-type': 'application/json', ...CORS });
@@ -40,7 +53,11 @@ async function readBody(req: IncomingMessage, max: number): Promise<string> {
 }
 
 export function createRelay(opts: RelayServerOptions = {}): { server: Server; core: RelayCore } {
-  const core = new RelayCore(opts.relayId ?? `relay-${Math.random().toString(36).slice(2, 8)}`, opts.log ?? new MemoryRelayLogStore(), opts.keys ?? new MemoryDeviceKeyStore());
+  const core = new RelayCore(
+    opts.relayId ?? `relay-${Math.random().toString(36).slice(2, 8)}`,
+    opts.log ?? new MemoryRelayLogStore(),
+    opts.keys ?? new MemoryDeviceKeyStore(),
+  );
   const max = opts.maxBodyBytes ?? 256 * 1024;
   const server = createServer(async (req, res) => {
     try {
@@ -52,7 +69,12 @@ export function createRelay(opts: RelayServerOptions = {}): { server: Server; co
       }
       if (req.method === 'GET' && url.pathname === RELAY_PATHS.health) {
         await core.load();
-        const h: RelayHealth = { ok: true, relayId: core.relayId, cursor: core.head, count: core.count };
+        const h: RelayHealth = {
+          ok: true,
+          relayId: core.relayId,
+          cursor: core.head,
+          count: core.count,
+        };
         json(res, 200, h);
         return;
       }
@@ -72,7 +94,11 @@ export function createRelay(opts: RelayServerOptions = {}): { server: Server; co
       if (req.method === 'GET' && url.pathname === RELAY_PATHS.envelopes) {
         const since = Number(url.searchParams.get('since') ?? '0');
         const limit = Math.min(1000, Math.max(1, Number(url.searchParams.get('limit') ?? '200')));
-        json(res, 200, await core.pull(url.searchParams.get('venue'), Number.isFinite(since) ? since : 0, limit));
+        json(
+          res,
+          200,
+          await core.pull(url.searchParams.get('venue'), Number.isFinite(since) ? since : 0, limit),
+        );
         return;
       }
       json(res, 404, { reason: 'not found' });

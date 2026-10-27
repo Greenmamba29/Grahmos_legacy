@@ -4,10 +4,20 @@
   "description": "TerraNova facility relay: store-and-forward of signed incident envelopes on an isolated LAN. No WAN required.",
   "license": "Apache-2.0",
   "type": "module",
-  "bin": { "terranova-relay": "./dist/main.js" },
+  "bin": {
+    "terranova-relay": "./dist/main.js"
+  },
   "main": "./dist/server.js",
   "types": "./dist/server.d.ts",
-  "files": ["dist"],
-  "scripts": { "build": "tsc -b", "test": "vitest run", "start": "node dist/main.js" },
-  "dependencies": { "@terranova/core": "0.1.0" }
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@terranova/core": "0.1.0"
+  }
 }

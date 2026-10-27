@@ -64,20 +64,43 @@ function mapPositions(g: Geometry, f: (p: Position) => Position): Geometry {
 
 /** Project a metre-grid floor (or any metre-grid FeatureCollection) to WGS84 for a geo renderer. */
 export function projectToWgs84(fc: FeatureCollection, anchor: VenueAnchor): FeatureCollection {
-  const f = (p: Position): Position => (Number.isFinite(p[0]) && Number.isFinite(p[1]) ? metersToLngLat(anchor, [p[0]!, p[1]!]) : p);
-  return { type: 'FeatureCollection', features: fc.features.map<Feature>((ft) => ({ ...ft, geometry: mapPositions(ft.geometry, f) })) };
+  const f = (p: Position): Position =>
+    Number.isFinite(p[0]) && Number.isFinite(p[1]) ? metersToLngLat(anchor, [p[0]!, p[1]!]) : p;
+  return {
+    type: 'FeatureCollection',
+    features: fc.features.map<Feature>((ft) => ({ ...ft, geometry: mapPositions(ft.geometry, f) })),
+  };
 }
 
 /** A hazard disc as a WGS84 polygon. */
-export function hazardPolygon(anchor: VenueAnchor, centre: Pt, radiusM: number, segments = 48): Feature {
+export function hazardPolygon(
+  anchor: VenueAnchor,
+  centre: Pt,
+  radiusM: number,
+  segments = 48,
+): Feature {
   const ring: Position[] = [];
   for (let i = 0; i <= segments; i++) {
     const a = (i / segments) * Math.PI * 2;
-    ring.push(metersToLngLat(anchor, [centre.x + radiusM * Math.cos(a), centre.y + radiusM * Math.sin(a)]));
+    ring.push(
+      metersToLngLat(anchor, [centre.x + radiusM * Math.cos(a), centre.y + radiusM * Math.sin(a)]),
+    );
   }
-  return { type: 'Feature', properties: { kind: 'hazard' }, geometry: { type: 'Polygon', coordinates: [ring] } };
+  return {
+    type: 'Feature',
+    properties: { kind: 'hazard' },
+    geometry: { type: 'Polygon', coordinates: [ring] },
+  };
 }
 
-export function lineFeature(anchor: VenueAnchor, pts: Pt[], properties: Record<string, unknown>): Feature {
-  return { type: 'Feature', properties, geometry: { type: 'LineString', coordinates: pts.map((p) => metersToLngLat(anchor, p)) } };
+export function lineFeature(
+  anchor: VenueAnchor,
+  pts: Pt[],
+  properties: Record<string, unknown>,
+): Feature {
+  return {
+    type: 'Feature',
+    properties,
+    geometry: { type: 'LineString', coordinates: pts.map((p) => metersToLngLat(anchor, p)) },
+  };
 }

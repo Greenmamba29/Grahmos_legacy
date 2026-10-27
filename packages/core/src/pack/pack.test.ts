@@ -116,10 +116,18 @@ describe('pack build + verify', () => {
 
 describe('anchor is part of the signed payload', () => {
   it('moving the venue invalidates the signature', () => {
-    const { files, manifest } = buildPackFiles({ ...input, anchor: { lng: -122.3313, lat: 47.5951 } });
+    const { files, manifest } = buildPackFiles({
+      ...input,
+      anchor: { lng: -122.3313, lat: 47.5951 },
+    });
     const signed = signManifest(manifest, seed, FIXTURE_SIGNING_KEY_ID);
-    expect(verifyPack(packZip(files, signed), { pinnedKeys: PINNED_PACK_SIGNING_KEYS }).manifest.anchor?.lat).toBe(47.5951);
+    expect(
+      verifyPack(packZip(files, signed), { pinnedKeys: PINNED_PACK_SIGNING_KEYS }).manifest.anchor
+        ?.lat,
+    ).toBe(47.5951);
     const moved = { ...signed, anchor: { lng: -122.3313, lat: 47.6 } };
-    expect(() => verifyPack(packZip(files, moved), { pinnedKeys: PINNED_PACK_SIGNING_KEYS })).toThrow(/does not match/);
+    expect(() =>
+      verifyPack(packZip(files, moved), { pinnedKeys: PINNED_PACK_SIGNING_KEYS }),
+    ).toThrow(/does not match/);
   });
 });

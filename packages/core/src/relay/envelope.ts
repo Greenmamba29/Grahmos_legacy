@@ -32,12 +32,32 @@ export interface Envelope {
 }
 
 export function envelopePayload(e: Omit<Envelope, 'signature' | 'alg'>): string {
-  return canonicalize({ id: e.id, venueSlug: e.venueSlug, deviceId: e.deviceId, publicKey: e.publicKey, sealedAt: e.sealedAt, event: e.event });
+  return canonicalize({
+    id: e.id,
+    venueSlug: e.venueSlug,
+    deviceId: e.deviceId,
+    publicKey: e.publicKey,
+    sealedAt: e.sealedAt,
+    event: e.event,
+  });
 }
 
-export function sealEnvelope(event: IncidentEvent, venueSlug: string, deviceId: string, seed: Uint8Array, sealedAt = new Date().toISOString()): Envelope {
+export function sealEnvelope(
+  event: IncidentEvent,
+  venueSlug: string,
+  deviceId: string,
+  seed: Uint8Array,
+  sealedAt = new Date().toISOString(),
+): Envelope {
   const publicKey = toHex(publicKeyFromSeed(seed));
-  const base = { id: sha256Hex(canonicalize(event)), venueSlug, deviceId, publicKey, sealedAt, event };
+  const base = {
+    id: sha256Hex(canonicalize(event)),
+    venueSlug,
+    deviceId,
+    publicKey,
+    sealedAt,
+    event,
+  };
   const signature = toHex(sign(new TextEncoder().encode(envelopePayload(base)), seed));
   return { ...base, alg: 'ed25519', signature };
 }
@@ -64,20 +84,31 @@ export class MemoryDeviceKeyStore implements DeviceKeyStore {
 export async function verifyEnvelope(e: Envelope, keys: DeviceKeyStore): Promise<EnvelopeVerdict> {
   if (e.alg !== 'ed25519') return { ok: false, reason: `unsupported algorithm ${String(e.alg)}` };
   if (!e.event || typeof e.event !== 'object') return { ok: false, reason: 'no event' };
-  if (e.id !== sha256Hex(canonicalize(e.event))) return { ok: false, reason: 'envelope id does not match the event' };
-  if (e.event.actor?.deviceId !== e.deviceId) return { ok: false, reason: 'event actor does not match the sealing device' };
+  if (e.id !== sha256Hex(canonicalize(e.event)))
+    return { ok: false, reason: 'envelope id does not match the event' };
+  if (e.event.actor?.deviceId !== e.deviceId)
+    return { ok: false, reason: 'event actor does not match the sealing device' };
   const { signature: _s, alg: _a, ...base } = e;
   void _s;
   void _a;
   let valid: boolean;
   try {
-    valid = verify(fromHex(e.signature), new TextEncoder().encode(envelopePayload(base)), fromHex(e.publicKey));
+    valid = verify(
+      fromHex(e.signature),
+      new TextEncoder().encode(envelopePayload(base)),
+      fromHex(e.publicKey),
+    );
   } catch (err) {
-    return { ok: false, reason: err instanceof KeyMaterialError ? `unusable key material: ${err.message}` : String(err) };
+    return {
+      ok: false,
+      reason:
+        err instanceof KeyMaterialError ? `unusable key material: ${err.message}` : String(err),
+    };
   }
   if (!valid) return { ok: false, reason: 'signature does not match' };
   const known = await keys.get(e.deviceId);
-  if (known && known !== e.publicKey) return { ok: false, reason: `device ${e.deviceId} is pinned to a different key` };
+  if (known && known !== e.publicKey)
+    return { ok: false, reason: `device ${e.deviceId} is pinned to a different key` };
   if (!known) await keys.put(e.deviceId, e.publicKey);
   return { ok: true, firstSight: !known };
 }

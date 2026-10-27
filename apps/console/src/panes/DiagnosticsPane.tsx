@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import {
   auditFloor,
+  cotEntitiesForFloor,
+  toCotDocument,
   type OutboxEnvelope,
   type RouteSummary,
   type ResilienceAudit,
@@ -276,6 +278,29 @@ export function DiagnosticsPane({ lastRoute }: { lastRoute: RouteSummary | null 
           <button className="primary" onClick={() => void exportEvidence()}>
             Export evidence package
           </button>
+          {s.pack?.pack.manifest.anchor && (
+            <button
+              onClick={() => {
+                const pack = s.pack!.pack;
+                const ents = pack.levels.flatMap((l) =>
+                  cotEntitiesForFloor(pack.floors[l.name]!, l.name, [...s.incidents.values()]),
+                );
+                const xml = toCotDocument(ents, {
+                  anchor: pack.manifest.anchor!,
+                  venueSlug: pack.manifest.venue_slug,
+                });
+                const blob = new Blob([xml], { type: 'application/xml' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${pack.manifest.venue_slug}.cot.xml`;
+                a.click();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+              }}
+            >
+              Export CoT for ATAK
+            </button>
+          )}
         </div>
         {chain && (
           <p className={chain.ok ? 'ok small' : 'error small'}>

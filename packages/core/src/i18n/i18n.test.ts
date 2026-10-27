@@ -21,6 +21,7 @@ describe('i18n', () => {
       expect(l.instructions.occupant).toEqual(PLAYBOOKS[type].instructions.occupant);
       expect(l.defaultAlert.title).toBe(PLAYBOOKS[type].defaultAlert.title);
     }
-    for (const lang of LANGS) expect(localisedPlaybook(lang, 'fire').banner.length).toBeGreaterThan(10);
+    for (const lang of LANGS)
+      expect(localisedPlaybook(lang, 'fire').banner.length).toBeGreaterThan(10);
   });
 });

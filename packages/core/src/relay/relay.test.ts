@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { MemoryDeviceKeyStore, sealEnvelope, verifyEnvelope } from './envelope.js';
 import { MemoryRelayLogStore, RelayCore } from './store.js';
 import { RelayClient } from './client.js';
-import { CommsService, EventLog, MemoryEventLogStore, MemoryOutboxStore, Outbox } from '../comms/index.js';
+import {
+  CommsService,
+  EventLog,
+  MemoryEventLogStore,
+  MemoryOutboxStore,
+  Outbox,
+} from '../comms/index.js';
 import { randomSeed } from '../crypto/ed25519.js';
 import { sha256Hex } from '../crypto/sha256.js';
 import { canonicalize } from '../crypto/canonicalJson.js';
@@ -12,7 +18,20 @@ const actorA = { deviceId: 'dev-A', name: 'A' };
 const seedA = randomSeed();
 const seedB = randomSeed();
 
-const declared = (): IncidentEvent => ({ id: 'e1', incidentId: 'inc', at: '2026-10-27T10:00:00Z', actor: actorA, seq: 1, kind: 'incident.declared', venueSlug: 'v', type: 'fire', title: 't', location: 'l', level: 'L', severity: 'high' });
+const declared = (): IncidentEvent => ({
+  id: 'e1',
+  incidentId: 'inc',
+  at: '2026-10-27T10:00:00Z',
+  actor: actorA,
+  seq: 1,
+  kind: 'incident.declared',
+  venueSlug: 'v',
+  type: 'fire',
+  title: 't',
+  location: 'l',
+  level: 'L',
+  severity: 'high',
+});
 
 describe('envelope', () => {
   it('seals, verifies, pins the device key on first sight, and refuses a key swap', async () => {
@@ -21,7 +40,10 @@ describe('envelope', () => {
     expect(await verifyEnvelope(env, keys)).toEqual({ ok: true, firstSight: true });
     expect(await verifyEnvelope(env, keys)).toEqual({ ok: true, firstSight: false });
     const swapped = sealEnvelope(declared(), 'v', 'dev-A', seedB);
-    expect(await verifyEnvelope(swapped, keys)).toMatchObject({ ok: false, reason: expect.stringMatching(/pinned to a different key/) });
+    expect(await verifyEnvelope(swapped, keys)).toMatchObject({
+      ok: false,
+      reason: expect.stringMatching(/pinned to a different key/),
+    });
   });
   it('rejects a tampered event and an actor/device mismatch', async () => {
     const keys = new MemoryDeviceKeyStore();
@@ -29,7 +51,10 @@ describe('envelope', () => {
     const tampered = { ...env, event: { ...env.event, title: 'evil' } as IncidentEvent };
     expect((await verifyEnvelope(tampered, keys)).ok).toBe(false);
     const mismatch = sealEnvelope(declared(), 'v', 'dev-B', seedB);
-    expect(await verifyEnvelope(mismatch, keys)).toMatchObject({ ok: false, reason: expect.stringMatching(/actor does not match/) });
+    expect(await verifyEnvelope(mismatch, keys)).toMatchObject({
+      ok: false,
+      reason: expect.stringMatching(/actor does not match/),
+    });
   });
 });
 
@@ -39,19 +64,41 @@ function fetchFor(core: RelayCore): typeof fetch {
     const url = new URL(String(input), 'http://relay.local');
     if (init?.method === 'POST') {
       const r = await core.accept(JSON.parse(String(init.body)));
-      if (r.status === 'rejected') return new Response(JSON.stringify({ reason: r.verdict.reason }), { status: 422 });
-      return new Response(JSON.stringify(r.result), { status: r.status === 'duplicate' ? 409 : 202 });
+      if (r.status === 'rejected')
+        return new Response(JSON.stringify({ reason: r.verdict.reason }), { status: 422 });
+      return new Response(JSON.stringify(r.result), {
+        status: r.status === 'duplicate' ? 409 : 202,
+      });
     }
-    const out = await core.pull(url.searchParams.get('venue'), Number(url.searchParams.get('since') ?? 0), Number(url.searchParams.get('limit') ?? 200));
+    const out = await core.pull(
+      url.searchParams.get('venue'),
+      Number(url.searchParams.get('since') ?? 0),
+      Number(url.searchParams.get('limit') ?? 200),
+    );
     return new Response(JSON.stringify(out), { status: 200 });
   }) as typeof fetch;
 }
 
-function device(id: string, seed: Uint8Array, core: RelayCore, stores?: { log: MemoryEventLogStore; out: MemoryOutboxStore }) {
+function device(
+  id: string,
+  seed: Uint8Array,
+  core: RelayCore,
+  stores?: { log: MemoryEventLogStore; out: MemoryOutboxStore },
+) {
   const log = stores?.log ?? new MemoryEventLogStore();
   const out = stores?.out ?? new MemoryOutboxStore();
-  const svc = new CommsService({ log: new EventLog(log), outbox: new Outbox(out), actor: () => ({ deviceId: id, name: id, role: 'operator' }) });
-  const client = new RelayClient({ baseUrl: 'http://relay.local', venueSlug: 'v', deviceId: id, seed, fetch: fetchFor(core) });
+  const svc = new CommsService({
+    log: new EventLog(log),
+    outbox: new Outbox(out),
+    actor: () => ({ deviceId: id, name: id, role: 'operator' }),
+  });
+  const client = new RelayClient({
+    baseUrl: 'http://relay.local',
+    venueSlug: 'v',
+    deviceId: id,
+    seed,
+    fetch: fetchFor(core),
+  });
   const keys = new MemoryDeviceKeyStore();
   let cursor = 0;
   const sync = async () => {
@@ -72,8 +119,19 @@ describe('V2a acceptance: isolated relay incident exchange', () => {
     await A.svc.init();
     await B.svc.init();
 
-    const d = await A.svc.declareIncident({ venueSlug: 'v', type: 'fire', title: 'Fire – 204', location: '204', level: 'L2', severity: 'high' });
-    const alert = (await A.svc.broadcastAlert(d.incidentId, { title: 'Evacuate', body: 'Now', severity: 'critical' })) as Extract<IncidentEvent, { kind: 'alert.broadcast' }>;
+    const d = await A.svc.declareIncident({
+      venueSlug: 'v',
+      type: 'fire',
+      title: 'Fire – 204',
+      location: '204',
+      level: 'L2',
+      severity: 'high',
+    });
+    const alert = (await A.svc.broadcastAlert(d.incidentId, {
+      title: 'Evacuate',
+      body: 'Now',
+      severity: 'critical',
+    })) as Extract<IncidentEvent, { kind: 'alert.broadcast' }>;
     await A.sync();
     expect(await A.svc.pendingCount()).toBe(0);
     expect(core.count).toBe(2);

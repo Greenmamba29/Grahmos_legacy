@@ -6,7 +6,12 @@ const anchor = { lng: -122.3313, lat: 47.5951 };
 
 describe('venue anchor projection', () => {
   it('round-trips within a millimetre', () => {
-    for (const p of [[0, 0], [62, -2], [-64, 24], [1234.5, -987.25]] as Array<[number, number]>) {
+    for (const p of [
+      [0, 0],
+      [62, -2],
+      [-64, 24],
+      [1234.5, -987.25],
+    ] as Array<[number, number]>) {
       expect(lngLatToMeters(anchor, metersToLngLat(anchor, p))).toEqual(p);
     }
   });

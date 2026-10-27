@@ -43,7 +43,11 @@ export class RelayClient implements Transport {
     const event = env.payload as IncidentEvent;
     const sealed = sealEnvelope(event, this.o.venueSlug, this.o.deviceId, this.o.seed);
     try {
-      const res = await this.req(RELAY_PATHS.envelopes, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(sealed) });
+      const res = await this.req(RELAY_PATHS.envelopes, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(sealed),
+      });
       if (res.status === 202 || res.status === 409) {
         const body = (await res.json().catch(() => ({}))) as { cursor?: number };
         return { status: 'delivered', receipt: `${this.name}#${body.cursor ?? '?'}` };
@@ -59,8 +63,19 @@ export class RelayClient implements Transport {
   }
 
   /** Pull and verify envelopes since `cursor`. Invalid envelopes are reported, never returned as events. */
-  async pull(since: number, keys: DeviceKeyStore, limit = 200): Promise<{ cursor: number; events: IncidentEvent[]; rejected: Array<{ id: string; reason: string }> }> {
-    const res = await this.req(`${RELAY_PATHS.envelopes}?venue=${encodeURIComponent(this.o.venueSlug)}&since=${since}&limit=${limit}`, { method: 'GET' });
+  async pull(
+    since: number,
+    keys: DeviceKeyStore,
+    limit = 200,
+  ): Promise<{
+    cursor: number;
+    events: IncidentEvent[];
+    rejected: Array<{ id: string; reason: string }>;
+  }> {
+    const res = await this.req(
+      `${RELAY_PATHS.envelopes}?venue=${encodeURIComponent(this.o.venueSlug)}&since=${since}&limit=${limit}`,
+      { method: 'GET' },
+    );
     if (!res.ok) throw new Error(`relay pull HTTP ${res.status}`);
     const body = (await res.json()) as PullResult;
     const events: IncidentEvent[] = [];

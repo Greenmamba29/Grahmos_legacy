@@ -70,7 +70,12 @@ export interface SignableFields {
 
 /** Exact bytes signed. Build and runtime MUST derive this identically. */
 export function signingPayload(f: SignableFields): string {
-  return canonicalize({ venue_slug: f.venue_slug, version: f.version, hashes: f.hashes, ...(f.anchor ? { anchor: f.anchor } : {}) });
+  return canonicalize({
+    venue_slug: f.venue_slug,
+    version: f.version,
+    hashes: f.hashes,
+    ...(f.anchor ? { anchor: f.anchor } : {}),
+  });
 }
 
 export function signManifest(

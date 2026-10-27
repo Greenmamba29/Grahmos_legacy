@@ -3,7 +3,15 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { AddressInfo } from 'node:net';
-import { CommsService, EventLog, MemoryDeviceKeyStore, MemoryEventLogStore, MemoryOutboxStore, Outbox, RelayClient } from '@terranova/core';
+import {
+  CommsService,
+  EventLog,
+  MemoryDeviceKeyStore,
+  MemoryEventLogStore,
+  MemoryOutboxStore,
+  Outbox,
+  RelayClient,
+} from '@terranova/core';
 import { randomSeed } from '@terranova/core/crypto';
 import { createRelay } from './server.js';
 import { FileRelayLogStore } from './fileStore.js';
@@ -22,8 +30,17 @@ beforeAll(async () => {
 afterAll(async () => stop());
 
 function device(id: string) {
-  const svc = new CommsService({ log: new EventLog(new MemoryEventLogStore()), outbox: new Outbox(new MemoryOutboxStore()), actor: () => ({ deviceId: id, name: id, role: 'responder' }) });
-  const client = new RelayClient({ baseUrl: base, venueSlug: 'v', deviceId: id, seed: randomSeed() });
+  const svc = new CommsService({
+    log: new EventLog(new MemoryEventLogStore()),
+    outbox: new Outbox(new MemoryOutboxStore()),
+    actor: () => ({ deviceId: id, name: id, role: 'responder' }),
+  });
+  const client = new RelayClient({
+    baseUrl: base,
+    venueSlug: 'v',
+    deviceId: id,
+    seed: randomSeed(),
+  });
   const keys = new MemoryDeviceKeyStore();
   let cursor = 0;
   return {
@@ -47,7 +64,14 @@ describe('relay over real HTTP with a file log', () => {
     const B = device('dev-B');
     await A.svc.init();
     await B.svc.init();
-    const d = await A.svc.declareIncident({ venueSlug: 'v', type: 'lockdown', title: 'Lockdown', location: 'Lobby', level: 'G', severity: 'critical' });
+    const d = await A.svc.declareIncident({
+      venueSlug: 'v',
+      type: 'lockdown',
+      title: 'Lockdown',
+      location: 'Lobby',
+      level: 'G',
+      severity: 'critical',
+    });
     await A.sync();
     await B.sync();
     expect(B.svc.incidents.get(d.incidentId)?.type).toBe('lockdown');
@@ -62,7 +86,11 @@ describe('relay over real HTTP with a file log', () => {
     expect(again.core.head).toBe(2);
     expect(again.core.count).toBe(2);
 
-    const bad = await fetch(`${base}/v1/envelopes`, { method: 'POST', body: '{not json', headers: { 'content-type': 'application/json' } });
+    const bad = await fetch(`${base}/v1/envelopes`, {
+      method: 'POST',
+      body: '{not json',
+      headers: { 'content-type': 'application/json' },
+    });
     expect(bad.status).toBe(400);
   });
 });

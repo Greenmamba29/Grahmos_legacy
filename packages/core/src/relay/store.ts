@@ -52,9 +52,15 @@ export class RelayCore {
     return this.rows.length;
   }
 
-  async accept(env: Envelope): Promise<{ status: 'accepted' | 'duplicate'; result: PostResult } | { status: 'rejected'; verdict: Extract<EnvelopeVerdict, { ok: false }> }> {
+  async accept(
+    env: Envelope,
+  ): Promise<
+    | { status: 'accepted' | 'duplicate'; result: PostResult }
+    | { status: 'rejected'; verdict: Extract<EnvelopeVerdict, { ok: false }> }
+  > {
     await this.load();
-    if (this.ids.has(env.id)) return { status: 'duplicate', result: { cursor: this.cursor, duplicate: true } };
+    if (this.ids.has(env.id))
+      return { status: 'duplicate', result: { cursor: this.cursor, duplicate: true } };
     const verdict = await verifyEnvelope(env, this.keys);
     if (!verdict.ok) return { status: 'rejected', verdict };
     this.cursor += 1;
