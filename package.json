@@ -2,7 +2,7 @@
   "name": "terranova",
   "private": true,
   "version": "0.1.0",
-  "description": "TerraNova — clean, feature-by-feature rebuild of GrahmOS. Offline-first emergency resilience, emergency communications, SafetyMap.",
+  "description": "TerraNova \u2014 clean, feature-by-feature rebuild of GrahmOS. Offline-first emergency resilience, emergency communications, SafetyMap.",
   "license": "Apache-2.0",
   "type": "module",
   "engines": {
@@ -19,13 +19,14 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "build": "npm run build -w @terranova/core && npm run build -w @terranova/cli && npm run build -w @terranova/console",
+    "build": "npm run build -w @terranova/core && npm run build -w @terranova/cli && npm run build -w @terranova/relay && npm run build -w @terranova/console",
     "gates": "npm run build:core && node scripts/gates.mjs",
     "ci": "npm run typecheck && npm run lint && npm run test && npm run gates && npm run build",
     "terranova": "node packages/cli/dist/main.js",
     "packs": "node packages/cli/dist/main.js pack fixture apps/console/public/packs/city-center-stadium.zip && node packages/cli/dist/main.js pack fixture apps/console/public/packs/harbor-general-hospital.zip --venue harbor-general",
     "icons": "node scripts/make-icons.mjs",
-    "build:core": "npm run build -w @terranova/core && npm run build -w @terranova/cli"
+    "build:core": "npm run build -w @terranova/core && npm run build -w @terranova/cli",
+    "relay": "node packages/relay/dist/main.js"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

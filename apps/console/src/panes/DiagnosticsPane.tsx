@@ -17,6 +17,8 @@ export function DiagnosticsPane({ lastRoute }: { lastRoute: RouteSummary | null 
   const [name, setName] = useState(s.identity?.name ?? '');
   const [role, setRole] = useState(s.identity?.role ?? 'operator');
   const [audit, setAudit] = useState<ResilienceAudit | null>(null);
+  const [relayUrl, setRelayUrl] = useState(s.relayUrl ?? '');
+  useEffect(() => setRelayUrl(s.relayUrl ?? ''), [s.relayUrl]);
 
   useEffect(() => {
     void rt.pendingEnvelopes().then(setEnvelopes);
@@ -191,6 +193,46 @@ export function DiagnosticsPane({ lastRoute }: { lastRoute: RouteSummary | null 
               </p>
             )}
           </div>
+        )}
+      </section>
+
+      <section className="card">
+        <h3>Facility relay (Tier 1)</h3>
+        <p className="muted small">
+          A relay on the local network stores and forwards signed incident envelopes between devices
+          with no WAN. Run one with <code>npm run relay</code> and enter its address here. Device
+          keys are pinned on first sight (self-attested until facility enrollment).
+        </p>
+        <label>
+          Relay URL
+          <input
+            placeholder="http://192.168.1.10:8787"
+            value={relayUrl}
+            onChange={(e) => setRelayUrl(e.target.value)}
+          />
+        </label>
+        <div className="row">
+          <button className="primary" onClick={() => void rt.setRelayUrl(relayUrl)}>
+            Save &amp; sync
+          </button>
+          <button disabled={!s.relayUrl} onClick={() => void rt.setRelayUrl(null)}>
+            Disconnect
+          </button>
+          <button
+            disabled={!s.relayUrl || s.connectivity.band === 'local'}
+            onClick={() => void rt.flush().then(() => rt.pullRelay())}
+          >
+            Sync now
+          </button>
+        </div>
+        {s.relayUrl && (
+          <p className="small">
+            cursor {s.relayCursor} · ingested {s.relayIngested} · rejected {s.relayRejected} ·{' '}
+            {s.relayLastPullAt
+              ? `last pull ${new Date(s.relayLastPullAt).toLocaleTimeString()}`
+              : 'no pull yet'}
+            {s.relayLastError && <span className="error"> · {s.relayLastError}</span>}
+          </p>
         )}
       </section>
 

@@ -179,7 +179,10 @@ function OutboxStatus() {
       )}
       {rt.uplinkConfigured && (
         <div className="row">
-          <button disabled={s.connectivity.band === 'local'} onClick={() => void rt.flush()}>
+          <button
+            disabled={s.connectivity.band === 'local'}
+            onClick={() => void rt.flush().then(() => rt.pullRelay())}
+          >
             Sync now
           </button>
           <span className="muted small">

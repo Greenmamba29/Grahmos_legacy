@@ -34,7 +34,7 @@ export default tseslint.config(
     languageOptions: { globals: { ...globals.browser } },
   },
   {
-    files: ['packages/cli/src/**/*.ts', 'scripts/**/*.mjs'],
+    files: ['packages/cli/src/**/*.ts', 'packages/relay/src/**/*.ts', 'scripts/**/*.mjs'],
     languageOptions: { globals: { ...globals.node } },
     rules: { 'no-console': 'off' },
   },

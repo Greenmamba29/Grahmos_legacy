@@ -1,8 +1,17 @@
 {
   "files": [],
   "references": [
-    { "path": "packages/core" },
-    { "path": "packages/cli" },
-    { "path": "apps/console" }
+    {
+      "path": "packages/core"
+    },
+    {
+      "path": "packages/cli"
+    },
+    {
+      "path": "packages/relay"
+    },
+    {
+      "path": "apps/console"
+    }
   ]
 }

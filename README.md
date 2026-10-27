@@ -58,10 +58,12 @@ console says so instead of hiding it.)
 
 ```
 packages/core     pure TypeScript domain (no DOM, no IndexedDB, no fetch) — tested in Node
-packages/cli      `terranova` — build / sign / verify / inspect packs, floor gates, keygen
+packages/cli      `terranova` — build / sign / verify / inspect packs, floor gates, DXF import, audit, keygen
+packages/relay    `terranova-relay` — LAN store-and-forward relay for signed incident envelopes
 apps/console      Vite + React PWA; Dexie storage adapters; service worker; the SafetyMap console
 scripts/gates.mjs release gates: offline, secrets, fixtures, packs, determinism
 scripts/e2e-offline.mjs  the installed-device offline drill
+scripts/e2e-relay.mjs    the two-device relay drill (V2a acceptance)
 docs/             ADRs, feature map, claim boundaries
 ```
 
@@ -93,9 +95,10 @@ npm run terranova -- keygen          # prints a SECRET seed + public key
   claims more.
 - **Signed ≠ validated.** A verified signature proves who built the pack, not that a fire marshal
   walked the floor. `provenance.validation` carries that claim separately.
-- **Local outbox, no uplink by default.** Writes are durable and inspectable on the device.
-  `VITE_SYNC_URL` points the outbox at a relay or cloud endpoint; disconnected device-to-device
-  exchange is the next feature, not this one.
+- **Local outbox; relay when you run one.** Writes are durable and inspectable on the device.
+  `npm run relay` starts a LAN relay; enter its address under Diagnostics and devices exchange
+  signed envelopes with no WAN. Device keys are pinned on first sight and are self-attested until
+  facility enrollment (Tier 2).
 
 ## License
 

@@ -32,6 +32,8 @@ import {
 } from '../data/packs';
 import { configuredTransport, SYNC_URL } from '../data/transport';
 import { loadDeviceKey, rotateDeviceKey, seedBytes, type DeviceKey } from '../data/deviceKey';
+import { DexieDeviceKeyStore, loadRelayUrl, makeRelayClient, saveRelayUrl } from '../data/relay';
+import type { Transport } from '@terranova/core';
 import { signCheckpoint, type Checkpoint } from '@terranova/core';
 import { LocalSearch, buildCorpus } from '@terranova/core';
 
@@ -42,6 +44,12 @@ export interface RuntimeState {
   deviceKey: DeviceKey | null;
   search: LocalSearch | null;
   lastCheckpoint: Checkpoint | null;
+  relayUrl: string | null;
+  relayCursor: number;
+  relayLastPullAt: string | null;
+  relayLastError: string | null;
+  relayIngested: number;
+  relayRejected: number;
   pack: InstalledPack | null;
   packFailure: PackFailure | null;
   packBusy: boolean;
@@ -74,6 +82,12 @@ export class Runtime {
       deviceKey: null,
       search: null,
       lastCheckpoint: null,
+      relayUrl: null,
+      relayCursor: 0,
+      relayLastPullAt: null,
+      relayLastError: null,
+      relayIngested: 0,
+      relayRejected: 0,
       pack: null,
       packFailure: null,
       packBusy: false,
@@ -111,6 +125,7 @@ export class Runtime {
     try {
       const identity = await loadIdentity(this.d);
       const deviceKey = await loadDeviceKey(this.d);
+      const relayUrl = await loadRelayUrl(this.d);
       const seq = await getSetting<number>('seq', 0, this.d);
       const comms = new CommsService({
         log: new EventLog(new DexieEventLogStore(this.d)),
@@ -129,7 +144,7 @@ export class Runtime {
         void this.refreshPending();
       });
       await comms.init();
-      this.set({ identity, deviceKey });
+      this.set({ identity, deviceKey, relayUrl });
 
       // Pack: local first, bundled fixture only when nothing is installed yet.
       let pack: InstalledPack | null = null;
@@ -275,7 +290,9 @@ export class Runtime {
     } finally {
       clearTimeout(t);
     }
-    if (this.state.connectivity.band !== 'local') void this.flush();
+    if (this.state.connectivity.band !== 'local') {
+      void this.flush().then(() => this.pullRelay());
+    }
   }
 
   private startHeartbeat(): void {
@@ -302,8 +319,22 @@ export class Runtime {
     return this.comms ? this.comms.queue.pending() : [];
   }
 
+  /** Relay (LAN) wins over a generic HTTP uplink when both are configured. */
+  private transport(): Transport | null {
+    const s = this.state;
+    if (s.relayUrl && s.identity && s.deviceKey && s.pack) {
+      return makeRelayClient(
+        s.relayUrl,
+        s.pack.pack.manifest.venue_slug,
+        s.identity.deviceId,
+        seedBytes(s.deviceKey),
+      );
+    }
+    return configuredTransport();
+  }
+
   async flush(): Promise<FlushReport | null> {
-    const transport = configuredTransport();
+    const transport = this.transport();
     if (!this.comms || !transport) return null;
     if (this.state.connectivity.band === 'local') return null;
     const report = await this.comms.flush(transport);
@@ -312,8 +343,47 @@ export class Runtime {
     return report;
   }
 
+  /** Pull envelopes from the relay since our cursor, verify, and fold them in. */
+  async pullRelay(): Promise<void> {
+    const s = this.state;
+    if (!this.comms || !s.relayUrl || !s.identity || !s.deviceKey || !s.pack) return;
+    if (s.connectivity.band === 'local') return;
+    const venue = s.pack.pack.manifest.venue_slug;
+    const client = makeRelayClient(s.relayUrl, venue, s.identity.deviceId, seedBytes(s.deviceKey));
+    const cursorKey = `relayCursor:${s.relayUrl}:${venue}`;
+    try {
+      const since = await getSetting<number>(cursorKey, 0, this.d);
+      const p = await client.pull(since, new DexieDeviceKeyStore(this.d));
+      const added = await this.comms.ingestRemote(p.events);
+      await setSetting(cursorKey, p.cursor, this.d);
+      this.set({
+        relayCursor: p.cursor,
+        relayLastPullAt: new Date().toISOString(),
+        relayLastError: null,
+        relayIngested: s.relayIngested + added,
+        relayRejected: s.relayRejected + p.rejected.length,
+      });
+      if (p.rejected.length) console.warn('[relay] rejected envelopes', p.rejected);
+    } catch (e) {
+      this.set({
+        relayLastError: e instanceof Error ? e.message : String(e),
+        relayLastPullAt: new Date().toISOString(),
+      });
+    }
+  }
+
+  async setRelayUrl(url: string | null): Promise<void> {
+    const clean = url?.trim() ? url.trim() : null;
+    await saveRelayUrl(this.d, clean);
+    this.set({ relayUrl: clean, relayLastError: null });
+    if (clean) {
+      await this.flush();
+      await this.pullRelay();
+    }
+  }
+
   get uplinkConfigured(): boolean {
-    return SYNC_URL !== null;
+    return SYNC_URL !== null || this.state.relayUrl !== null;
   }
 
   // ------------------------------------------------------------------ readiness
