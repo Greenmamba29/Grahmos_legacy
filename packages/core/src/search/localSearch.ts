@@ -30,7 +30,9 @@ export interface SearchHit extends SearchDoc {
 }
 
 export interface SearchCorpusInput {
-  procedures?: { documents: Array<{ id: string; title: string; kind: string; body: string }> } | null;
+  procedures?: {
+    documents: Array<{ id: string; title: string; kind: string; body: string }>;
+  } | null;
   floors?: Record<string, FeatureCollection>;
   incidents?: Iterable<Incident>;
   includePlaybooks?: boolean;
@@ -38,21 +40,60 @@ export interface SearchCorpusInput {
 
 export function buildCorpus(input: SearchCorpusInput): SearchDoc[] {
   const docs: SearchDoc[] = [];
-  for (const d of input.procedures?.documents ?? []) docs.push({ id: `procedure:${d.id}`, source: 'procedure', title: d.title, body: d.body });
+  for (const d of input.procedures?.documents ?? [])
+    docs.push({ id: `procedure:${d.id}`, source: 'procedure', title: d.title, body: d.body });
   for (const [level, floor] of Object.entries(input.floors ?? {})) {
     for (const p of floorPois(floor))
-      docs.push({ id: `poi:${level}:${p.category}:${p.id}`, source: 'poi', title: p.name, body: `${p.category.replace('_', ' ')} on ${level}${p.accessible ? '' : ' (not step-free)'}`, level, xy: p.xy, nodeId: `${p.category}:${p.id}` });
-    for (const r of floorRooms(floor)) docs.push({ id: `room:${level}:${r.id}`, source: 'room', title: r.name, body: `room on ${level}`, level, xy: r.centroid });
+      docs.push({
+        id: `poi:${level}:${p.category}:${p.id}`,
+        source: 'poi',
+        title: p.name,
+        body: `${p.category.replace('_', ' ')} on ${level}${p.accessible ? '' : ' (not step-free)'}`,
+        level,
+        xy: p.xy,
+        nodeId: `${p.category}:${p.id}`,
+      });
+    for (const r of floorRooms(floor))
+      docs.push({
+        id: `room:${level}:${r.id}`,
+        source: 'room',
+        title: r.name,
+        body: `room on ${level}`,
+        level,
+        xy: r.centroid,
+      });
   }
   if (input.includePlaybooks !== false) {
     for (const pb of Object.values(PLAYBOOKS)) {
-      const body = [pb.banner, ...pb.instructions.occupant, ...pb.instructions.responder, ...pb.instructions.operator].join(' ');
-      docs.push({ id: `playbook:${pb.type}`, source: 'playbook', title: `${pb.label} playbook`, body });
+      const body = [
+        pb.banner,
+        ...pb.instructions.occupant,
+        ...pb.instructions.responder,
+        ...pb.instructions.operator,
+      ].join(' ');
+      docs.push({
+        id: `playbook:${pb.type}`,
+        source: 'playbook',
+        title: `${pb.label} playbook`,
+        body,
+      });
     }
   }
   for (const inc of input.incidents ?? []) {
-    const body = [inc.location, inc.status, inc.severity, ...inc.updates.map((u) => u.body), ...inc.alerts.map((a) => `${a.title} ${a.body}`)].join(' ');
-    const doc: SearchDoc = { id: `incident:${inc.id}`, source: 'incident', title: inc.title, body, level: inc.level };
+    const body = [
+      inc.location,
+      inc.status,
+      inc.severity,
+      ...inc.updates.map((u) => u.body),
+      ...inc.alerts.map((a) => `${a.title} ${a.body}`),
+    ].join(' ');
+    const doc: SearchDoc = {
+      id: `incident:${inc.id}`,
+      source: 'incident',
+      title: inc.title,
+      body,
+      level: inc.level,
+    };
     if (inc.hazardXY) doc.xy = inc.hazardXY;
     docs.push(doc);
   }
@@ -93,6 +134,9 @@ export class LocalSearch {
 
   /** Short list of terms the index knows that start with the prefix — for type-ahead. */
   suggest(prefix: string, limit = 6): string[] {
-    return this.index.autoSuggest(prefix, { prefix: true }).slice(0, limit).map((s) => s.suggestion);
+    return this.index
+      .autoSuggest(prefix, { prefix: true })
+      .slice(0, limit)
+      .map((s) => s.suggestion);
   }
 }

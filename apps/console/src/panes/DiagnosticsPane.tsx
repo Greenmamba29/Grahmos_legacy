@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react';
-import type { OutboxEnvelope, RouteSummary } from '@terranova/core';
+import {
+  auditFloor,
+  type OutboxEnvelope,
+  type RouteSummary,
+  type ResilienceAudit,
+} from '@terranova/core';
 import { useRuntime, useRuntimeState } from '../app/store';
 import { BUNDLED_PACKS } from '../data/packs';
 import { buildEvidence, downloadJson, RELEASE } from '../app/evidence';
@@ -11,6 +16,7 @@ export function DiagnosticsPane({ lastRoute }: { lastRoute: RouteSummary | null 
   const [chain, setChain] = useState<{ ok: boolean; count: number; reason?: string } | null>(null);
   const [name, setName] = useState(s.identity?.name ?? '');
   const [role, setRole] = useState(s.identity?.role ?? 'operator');
+  const [audit, setAudit] = useState<ResilienceAudit | null>(null);
 
   useEffect(() => {
     void rt.pendingEnvelopes().then(setEnvelopes);
@@ -128,6 +134,64 @@ export function DiagnosticsPane({ lastRoute }: { lastRoute: RouteSummary | null 
             onChange={(e) => e.target.files?.[0] && void rt.installFromFile(e.target.files[0])}
           />
         </label>
+      </section>
+
+      <section className="card">
+        <h3>Resilience audit</h3>
+        <p className="muted small">
+          Graph travel distances along mapped corridors: a proxy for NFPA 101, not a code-official
+          measurement.
+        </p>
+        <div className="row">
+          {s.pack?.pack.levels.map((l) => (
+            <button
+              key={l.id}
+              onClick={() => setAudit(auditFloor(l.name, s.pack!.pack.floors[l.name]!))}
+            >
+              Audit {l.name}
+            </button>
+          ))}
+        </div>
+        {audit && (
+          <div>
+            <p>
+              <strong>{audit.level}</strong>: {audit.score} / {audit.maxScore} ·{' '}
+              <span
+                className={`pill band-${audit.band === 'resilient' ? 'full' : audit.band === 'adequate' ? 'degraded' : 'local'}`}
+              >
+                {audit.band}
+              </span>
+            </p>
+            {audit.categories.map((c) => (
+              <details key={c.key} open={c.findings.length > 0}>
+                <summary>
+                  {c.label}: {Math.round(c.score * 10) / 10} / {c.maxScore}
+                </summary>
+                <ul className="small list">
+                  {c.findings.map((f, i) => (
+                    <li
+                      key={i}
+                      className={
+                        f.severity === 'critical' || f.severity === 'high' ? 'error' : 'warn'
+                      }
+                    >
+                      {f.severity}: {f.message}
+                    </li>
+                  ))}
+                  {c.findings.length === 0 && <li className="ok">no findings</li>}
+                </ul>
+              </details>
+            ))}
+            {audit.hazardHotspots.length > 0 && (
+              <p className="muted small">
+                Worst corridor positions for a fire:{' '}
+                {audit.hazardHotspots
+                  .map((h) => `${h.nodeId} (strands ${h.roomsStranded})`)
+                  .join(', ')}
+              </p>
+            )}
+          </div>
+        )}
       </section>
 
       <section className="card">

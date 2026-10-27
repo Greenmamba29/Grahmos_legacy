@@ -4,8 +4,18 @@ import { CITY_CENTER_FLOORS } from '../safetymap/fixtures/cityCenter.js';
 
 const procedures = {
   documents: [
-    { id: 'p1', title: 'Communications loss', kind: 'procedure', body: 'When network and telephony are unavailable revert to runner-based reporting on the half hour.' },
-    { id: 'p2', title: 'Medical response', kind: 'procedure', body: 'Dispatch the nearest responder with the AED highlighted on the map.' },
+    {
+      id: 'p1',
+      title: 'Communications loss',
+      kind: 'procedure',
+      body: 'When network and telephony are unavailable revert to runner-based reporting on the half hour.',
+    },
+    {
+      id: 'p2',
+      title: 'Medical response',
+      kind: 'procedure',
+      body: 'Dispatch the nearest responder with the AED highlighted on the map.',
+    },
   ],
 };
 

@@ -15,6 +15,9 @@ import {
   fixtures,
   type PackManifest,
   type BuildInput,
+  dxfToFloor,
+  auditFloor,
+  renderAuditMarkdown,
 } from '@terranova/core';
 import { fromHex, toHex, publicKeyFromSeed, randomSeed } from '@terranova/core/crypto';
 
@@ -31,6 +34,10 @@ const HELP = `terranova — TerraNova venue-pack and resilience tooling
       Print the manifest without trusting it.
   terranova gate floors <floor.geojson>...
       Run the floor contract + routability gate on floor files. Exit 1 on failure.
+  terranova floor from-dxf <plan.dxf> <out.geojson> [--scale 0.001] [--origin-x n --origin-y n] [--flip-y]
+      Convert a flattened CAD export (layer convention in core/importers/dxf.ts) into the floor contract.
+  terranova audit floor <floor.geojson> [--level <name>] [--unsprinklered] [--json]
+      Resilience audit: exit coverage, AED reach, corridor redundancy, accessible egress, hazard hotspots.
   terranova keygen
       Print a fresh Ed25519 seed + public key (hex). The seed is a SECRET.
 `;
@@ -83,6 +90,42 @@ export async function main(argv: string[]): Promise<number> {
       } else console.log(`ok   ${file}`);
     }
     return failed ? 1 : 0;
+  }
+  if (cmd === 'floor' && sub === 'from-dxf') {
+    const [input, out] = rest;
+    if (!input || !out) throw new Error('usage: floor from-dxf <plan.dxf> <out.geojson>');
+    const text = await readFile(input, 'utf8');
+    const scale = Number(arg('--scale', rest) ?? '1');
+    const report = dxfToFloor(text, {
+      transform: {
+        scale,
+        originX: Number(arg('--origin-x', rest) ?? '0'),
+        originY: Number(arg('--origin-y', rest) ?? '0'),
+        flipY: rest.includes('--flip-y'),
+      },
+    });
+    await writeBytes(out, new TextEncoder().encode(JSON.stringify(report.floor)));
+    console.log(`wrote ${out}: ${JSON.stringify(report.counts)}`);
+    if (report.ignored.length)
+      console.warn(
+        `ignored ${report.ignored.length} entities: ${[...new Set(report.ignored)].join(', ')}`,
+      );
+    const failures = gateFloors([{ id: 'x', name: out, ordinal: 0 }], { [out]: report.floor });
+    if (failures.length) {
+      console.error('GATE FAILED for the converted floor:');
+      console.error(JSON.stringify(failures, null, 2));
+      return 1;
+    }
+    console.log('gate: ok (contract valid, every room reaches an exit, no suspect snaps)');
+    return 0;
+  }
+  if (cmd === 'audit' && sub === 'floor') {
+    const file = rest[0];
+    if (!file) throw new Error('usage: audit floor <floor.geojson>');
+    const floor = await readJson<Parameters<typeof auditFloor>[1]>(file);
+    const a = auditFloor(arg('--level', rest) ?? file, floor, !rest.includes('--unsprinklered'));
+    console.log(rest.includes('--json') ? JSON.stringify(a, null, 2) : renderAuditMarkdown(a));
+    return a.band === 'deficient' ? 1 : 0;
   }
   if (cmd === 'pack') {
     if (sub === 'fixture') {

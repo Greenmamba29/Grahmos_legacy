@@ -21,11 +21,16 @@ export interface Checkpoint {
   alg: 'ed25519';
 }
 
-export function checkpointPayload(c: Pick<Checkpoint, 'deviceId' | 'headHash' | 'count' | 'at'>): string {
+export function checkpointPayload(
+  c: Pick<Checkpoint, 'deviceId' | 'headHash' | 'count' | 'at'>,
+): string {
   return canonicalize({ deviceId: c.deviceId, headHash: c.headHash, count: c.count, at: c.at });
 }
 
-export function signCheckpoint(input: Pick<Checkpoint, 'deviceId' | 'headHash' | 'count' | 'at'>, seed: Uint8Array): Checkpoint {
+export function signCheckpoint(
+  input: Pick<Checkpoint, 'deviceId' | 'headHash' | 'count' | 'at'>,
+  seed: Uint8Array,
+): Checkpoint {
   const pub = publicKeyFromSeed(seed);
   const sig = sign(new TextEncoder().encode(checkpointPayload(input)), seed);
   return { ...input, publicKey: toHex(pub), signature: toHex(sig), alg: 'ed25519' };
@@ -37,15 +42,30 @@ export type CheckpointVerdict = { ok: true } | { ok: false; reason: string };
  * Verify a checkpoint. `trustedKeys` maps deviceId → public key hex; when absent, the checkpoint's
  * embedded key is used and the verdict says so — self-attested, not pinned.
  */
-export function verifyCheckpoint(c: Checkpoint, trustedKeys?: Record<string, string>): CheckpointVerdict & { pinned: boolean } {
+export function verifyCheckpoint(
+  c: Checkpoint,
+  trustedKeys?: Record<string, string>,
+): CheckpointVerdict & { pinned: boolean } {
   const pinnedKey = trustedKeys?.[c.deviceId];
   const key = pinnedKey ?? c.publicKey;
-  if (pinnedKey && pinnedKey !== c.publicKey) return { ok: false, pinned: true, reason: 'embedded key differs from the pinned device key' };
-  if (c.alg !== 'ed25519') return { ok: false, pinned: !!pinnedKey, reason: `unsupported algorithm ${String(c.alg)}` };
+  if (pinnedKey && pinnedKey !== c.publicKey)
+    return { ok: false, pinned: true, reason: 'embedded key differs from the pinned device key' };
+  if (c.alg !== 'ed25519')
+    return { ok: false, pinned: !!pinnedKey, reason: `unsupported algorithm ${String(c.alg)}` };
   try {
-    const ok = verify(fromHex(c.signature), new TextEncoder().encode(checkpointPayload(c)), fromHex(key));
-    return ok ? { ok: true, pinned: !!pinnedKey } : { ok: false, pinned: !!pinnedKey, reason: 'signature does not match' };
+    const ok = verify(
+      fromHex(c.signature),
+      new TextEncoder().encode(checkpointPayload(c)),
+      fromHex(key),
+    );
+    return ok
+      ? { ok: true, pinned: !!pinnedKey }
+      : { ok: false, pinned: !!pinnedKey, reason: 'signature does not match' };
   } catch (e) {
-    return { ok: false, pinned: !!pinnedKey, reason: e instanceof KeyMaterialError ? `unusable key material: ${e.message}` : String(e) };
+    return {
+      ok: false,
+      pinned: !!pinnedKey,
+      reason: e instanceof KeyMaterialError ? `unusable key material: ${e.message}` : String(e),
+    };
   }
 }
