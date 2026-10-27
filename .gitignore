@@ -11,3 +11,5 @@ coverage/
 *.key
 *.seed
 dist-types/
+*.tsbuildinfo
+offline-drill-failure.png

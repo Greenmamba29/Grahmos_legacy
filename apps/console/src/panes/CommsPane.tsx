@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { playbookFor, type Incident } from '@terranova/core';
+import { localisedPlaybook, playbookFor, t, CATALOGUES, type Incident } from '@terranova/core';
 import { useRuntime, useRuntimeState } from '../app/store';
 
 export function CommsPane({ incident }: { incident: Incident | null }) {
@@ -32,6 +32,9 @@ export function CommsPane({ incident }: { incident: Incident | null }) {
     );
   }
   const pb = playbookFor(incident.type);
+  const lang = s.language;
+  const lp = localisedPlaybook(lang, incident.type);
+  const alertFor = { ...pb.defaultAlert, title: lp.defaultAlert.title, body: lp.defaultAlert.body };
   return (
     <div className="pane">
       <h2>Communications</h2>
@@ -48,9 +51,9 @@ export function CommsPane({ incident }: { incident: Incident | null }) {
         </p>
         <button
           className="primary"
-          onClick={() => void run(() => rt.service.broadcastAlert(incident.id, pb.defaultAlert))}
+          onClick={() => void run(() => rt.service.broadcastAlert(incident.id, alertFor))}
         >
-          Send playbook alert: “{pb.defaultAlert.title}”
+          Send playbook alert: “{lp.defaultAlert.title}”
         </button>
         <label>
           Custom title
@@ -97,7 +100,7 @@ export function CommsPane({ incident }: { incident: Incident | null }) {
                     disabled={acked}
                     onClick={() => void run(() => rt.service.acknowledgeAlert(incident.id, a.id))}
                   >
-                    {acked ? 'Acknowledged' : 'Acknowledge'}
+                    {acked ? t(lang, 'ack.acknowledged') : t(lang, 'ack.acknowledge')}
                   </button>
                 </div>
                 {a.acks.length > 0 && (
@@ -120,16 +123,16 @@ export function CommsPane({ incident }: { incident: Incident | null }) {
         <h3>Check-in</h3>
         <div className="row">
           <button onClick={() => void run(() => rt.service.checkIn(incident.id, 'safe'))}>
-            I am safe
+            {t(lang, 'checkin.safe')}
           </button>
           <button onClick={() => void run(() => rt.service.checkIn(incident.id, 'evacuated'))}>
-            Evacuated
+            {t(lang, 'checkin.evacuated')}
           </button>
           <button
             className="danger"
             onClick={() => void run(() => rt.service.checkIn(incident.id, 'needs_help'))}
           >
-            Need help
+            {t(lang, 'checkin.needs_help')}
           </button>
         </div>
         {incident.checkins.length > 0 && (
@@ -145,11 +148,15 @@ export function CommsPane({ incident }: { incident: Incident | null }) {
 
       <section className="card">
         <h3>Role instructions</h3>
+        {CATALOGUES[lang].provenance !== 'source language' && (
+          <p className="warn small">{CATALOGUES[lang].provenance}</p>
+        )}
+        {CATALOGUES[lang].dir === 'rtl' && <p className="muted small">{t(lang, 'rtl.notice')}</p>}
         {(['occupant', 'responder', 'operator'] as const).map((role) => (
           <details key={role} open={role === (s.identity?.role ?? 'operator')}>
             <summary>{role}</summary>
             <ol>
-              {pb.instructions[role].map((line, i) => (
+              {lp.instructions[role].map((line, i) => (
                 <li key={i}>{line}</li>
               ))}
             </ol>

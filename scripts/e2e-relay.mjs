@@ -72,8 +72,8 @@ try {
 
   await A.getByRole('button', { name: 'Level 2', exact: true }).click();
   await A.getByRole('button', { name: /^incidents/ }).click();
-  await A.selectOption('select >> nth=0', 'fire');
-  await A.selectOption('select >> nth=1', '204');
+  await A.selectOption('.pane select >> nth=0', 'fire');
+  await A.selectOption('.pane select >> nth=1', '204');
   await A.getByRole('button', { name: /^Declare fire/ }).click();
   await A.waitForSelector('.banner');
   await A.getByRole('button', { name: /^comms/ }).click();

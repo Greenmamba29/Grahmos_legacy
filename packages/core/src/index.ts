@@ -10,4 +10,5 @@ export * from './audit/index.js';
 export * from './geo/index.js';
 export * from './positioning/index.js';
 export * from './relay/index.js';
+export * from './i18n/index.js';
 export const TERRANOVA_CORE_VERSION = '0.1.0';

@@ -13,6 +13,7 @@ import { useRuntime, useRuntimeState } from './app/store';
 import { FloorCanvas } from './map/FloorCanvas';
 import { GeoMap } from './map/GeoMap';
 import { usePosition } from './map/usePosition';
+import { LANGS, CATALOGUES, localisedPlaybook, t } from '@terranova/core';
 import { PaneBoundary } from './ui/PaneBoundary';
 import { IncidentPane } from './panes/IncidentPane';
 import { CommsPane } from './panes/CommsPane';
@@ -115,6 +116,8 @@ export default function App() {
     [floor, mode, routeOrigin, hazard, destination],
   );
   const playbook = selected && selected.status !== 'resolved' ? playbookFor(selected.type) : null;
+  const lang = s.language;
+  const banner = selected && playbook ? localisedPlaybook(lang, selected.type).banner : null;
   const assetRoute = useMemo(
     () =>
       floor && playbook?.autoRoute.kind === 'asset'
@@ -144,14 +147,26 @@ export default function App() {
             className={`pill lvl-${s.readiness?.level ?? 'ERROR'}`}
             title={s.readiness?.reasons.join('\n') || 'All Tier-0 components present'}
           >
-            {s.readiness?.level ?? 'BOOT'}
+            {s.readiness ? t(lang, `status.${s.readiness.level.toLowerCase()}`) : 'BOOT'}
           </span>
           <span className={`pill band-${s.connectivity.band}`} title={s.connectivity.reason}>
-            {s.connectivity.band}
+            {t(lang, `band.${s.connectivity.band}`)}
           </span>
           <span className="pill" title="Writes pending on this device">
-            outbox {s.pendingCount}
+            {t(lang, 'outbox.pending', { n: s.pendingCount })}
           </span>
+          <select
+            aria-label="Language"
+            className="lang"
+            value={lang}
+            onChange={(e) => void rt.setLanguage(e.target.value as (typeof LANGS)[number])}
+          >
+            {LANGS.map((l) => (
+              <option key={l} value={l}>
+                {CATALOGUES[l].name}
+              </option>
+            ))}
+          </select>
           {s.swUpdateReady && (
             <button className="small" onClick={() => location.reload()}>
               Update ready — reload
@@ -162,7 +177,7 @@ export default function App() {
 
       {playbook && (
         <div className={`banner sev-${selected?.severity ?? 'high'}`} role="alert">
-          <strong>{selected?.title}</strong> — {playbook.banner}
+          <strong>{selected?.title}</strong> — {banner}
         </div>
       )}
 
@@ -202,7 +217,7 @@ export default function App() {
             </div>
           )}
           {pack?.manifest.provenance.validation === 'fixture' && (
-            <span className="pill warn">engineering fixture — not a real venue</span>
+            <span className="pill warn">{t(lang, 'fixture.badge')}</span>
           )}
         </div>
         <PaneBoundary

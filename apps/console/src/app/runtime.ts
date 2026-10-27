@@ -34,6 +34,7 @@ import { configuredTransport, SYNC_URL } from '../data/transport';
 import { loadDeviceKey, rotateDeviceKey, seedBytes, type DeviceKey } from '../data/deviceKey';
 import { DexieDeviceKeyStore, loadRelayUrl, makeRelayClient, saveRelayUrl } from '../data/relay';
 import type { Transport } from '@terranova/core';
+import { dirFor, isLang, type Lang } from '@terranova/core';
 import { signCheckpoint, type Checkpoint } from '@terranova/core';
 import { LocalSearch, buildCorpus } from '@terranova/core';
 
@@ -44,6 +45,7 @@ export interface RuntimeState {
   deviceKey: DeviceKey | null;
   search: LocalSearch | null;
   lastCheckpoint: Checkpoint | null;
+  language: Lang;
   relayUrl: string | null;
   relayCursor: number;
   relayLastPullAt: string | null;
@@ -82,6 +84,7 @@ export class Runtime {
       deviceKey: null,
       search: null,
       lastCheckpoint: null,
+      language: 'en',
       relayUrl: null,
       relayCursor: 0,
       relayLastPullAt: null,
@@ -126,6 +129,9 @@ export class Runtime {
       const identity = await loadIdentity(this.d);
       const deviceKey = await loadDeviceKey(this.d);
       const relayUrl = await loadRelayUrl(this.d);
+      const storedLang = await getSetting<string>('language', 'en', this.d);
+      const language: Lang = isLang(storedLang) ? storedLang : 'en';
+      this.applyLanguage(language);
       const seq = await getSetting<number>('seq', 0, this.d);
       const comms = new CommsService({
         log: new EventLog(new DexieEventLogStore(this.d)),
@@ -144,7 +150,7 @@ export class Runtime {
         void this.refreshPending();
       });
       await comms.init();
-      this.set({ identity, deviceKey, relayUrl });
+      this.set({ identity, deviceKey, relayUrl, language });
 
       // Pack: local first, bundled fixture only when nothing is installed yet.
       let pack: InstalledPack | null = null;
@@ -370,6 +376,19 @@ export class Runtime {
         relayLastPullAt: new Date().toISOString(),
       });
     }
+  }
+
+  /** Language is part of the degradation contract: static catalogues, applied without a network. */
+  async setLanguage(language: Lang): Promise<void> {
+    await setSetting('language', language, this.d);
+    this.applyLanguage(language);
+    this.set({ language });
+  }
+
+  private applyLanguage(language: Lang): void {
+    if (typeof document === 'undefined') return;
+    document.documentElement.lang = language;
+    document.documentElement.dir = dirFor(language);
   }
 
   async setRelayUrl(url: string | null): Promise<void> {

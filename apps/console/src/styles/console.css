@@ -649,3 +649,15 @@ code {
   animation: none;
   fill: rgba(148, 163, 184, 0.2);
 }
+
+/* ---- language ---- */
+select.lang {
+  width: auto;
+  margin: 0;
+  padding: 3px 6px;
+  font-size: 12px;
+}
+[dir='rtl'] .pane,
+[dir='rtl'] .banner {
+  text-align: right;
+}

@@ -70,8 +70,8 @@ try {
   // Declare a fire in Concourse 204 on Level 2.
   await page.getByRole('button', { name: 'Level 2' }).click();
   await page.getByRole('button', { name: /^incidents/ }).click();
-  await page.selectOption('select >> nth=0', 'fire');
-  await page.selectOption('select >> nth=1', '204');
+  await page.selectOption('.pane select >> nth=0', 'fire');
+  await page.selectOption('.pane select >> nth=1', '204');
   await page.getByRole('button', { name: /^Declare fire/ }).click();
   await page.waitForSelector('.banner');
   await page.waitForSelector('.hazard-zone');
