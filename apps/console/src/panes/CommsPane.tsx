@@ -121,20 +121,42 @@ export function CommsPane({ incident }: { incident: Incident | null }) {
 
       <section className="card">
         <h3>Check-in</h3>
-        <div className="row">
-          <button onClick={() => void run(() => rt.service.checkIn(incident.id, 'safe'))}>
-            {t(lang, 'checkin.safe')}
-          </button>
-          <button onClick={() => void run(() => rt.service.checkIn(incident.id, 'evacuated'))}>
-            {t(lang, 'checkin.evacuated')}
-          </button>
-          <button
-            className="danger"
-            onClick={() => void run(() => rt.service.checkIn(incident.id, 'needs_help'))}
-          >
-            {t(lang, 'checkin.needs_help')}
-          </button>
+        <p className="muted small">
+          Your last status is what the operator sees. Tap again any time it changes.
+        </p>
+        <div className="checkin-grid">
+          {(
+            [
+              ['safe', '✓', t(lang, 'checkin.safe')],
+              ['evacuated', '⇥', t(lang, 'checkin.evacuated')],
+              ['needs_help', '!', t(lang, 'checkin.needs_help')],
+            ] as const
+          ).map(([status, icon, label]) => {
+            const mine = [...incident.checkins].reverse().find((c) => c.actor.deviceId === me);
+            const current = mine?.status === status;
+            return (
+              <button
+                key={status}
+                className={`checkin checkin-${status}${current ? ' on' : ''}`}
+                aria-pressed={current}
+                onClick={() => void run(() => rt.service.checkIn(incident.id, status))}
+              >
+                <span className="checkin-icon" aria-hidden>
+                  {icon}
+                </span>
+                <span>{label}</span>
+                {current && mine && (
+                  <span className="small muted">{new Date(mine.at).toLocaleTimeString()}</span>
+                )}
+              </button>
+            );
+          })}
         </div>
+        <p className="small muted">
+          {incident.checkins.filter((c) => c.status === 'needs_help').length} need help ·{' '}
+          {incident.checkins.filter((c) => c.status === 'safe').length} safe ·{' '}
+          {incident.checkins.filter((c) => c.status === 'evacuated').length} evacuated
+        </p>
         {incident.checkins.length > 0 && (
           <ul className="small list">
             {[...incident.checkins].reverse().map((c, i) => (

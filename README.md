@@ -62,6 +62,8 @@ console says so instead of hiding it.)
 
 ![Console: fire declared, hazard-aware route, exit board](docs/console-fire-routing.png)
 
+Console screens follow real-app patterns catalogued in [docs/DESIGN_REFERENCES.md](docs/DESIGN_REFERENCES.md).
+
 ## Layout
 
 ```

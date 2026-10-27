@@ -661,3 +661,410 @@ select.lang {
 [dir='rtl'] .banner {
   text-align: right;
 }
+
+/* ---- alert takeover (single primary action) ---- */
+.takeover-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 9, 18, 0.72);
+  display: grid;
+  place-items: end center;
+  z-index: 50;
+  padding: 16px;
+}
+.takeover {
+  width: min(560px, 100%);
+  border-radius: 18px 18px 14px 14px;
+  padding: 18px 18px 14px;
+  background: #7f1d1d;
+  color: white;
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.5);
+}
+.takeover.sev-high {
+  background: #7c2d12;
+}
+.takeover.sev-moderate,
+.takeover.sev-low,
+.takeover.sev-info {
+  background: #1e293b;
+}
+.takeover-kicker {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.85;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.takeover h2 {
+  margin: 8px 0 6px;
+  font-size: 26px;
+  line-height: 1.15;
+}
+.takeover-body {
+  font-size: 16px;
+  margin: 0 0 6px;
+}
+.takeover-meta {
+  font-size: 12px;
+  opacity: 0.8;
+  margin: 0 0 14px;
+}
+.takeover-primary {
+  width: 100%;
+  padding: 16px;
+  font-size: 18px;
+  font-weight: 700;
+  border-radius: 14px;
+  background: #0b1220;
+  border: none;
+  color: white;
+}
+.takeover-secondary {
+  margin-top: 10px;
+  justify-content: space-between;
+}
+.takeover-secondary button {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: transparent;
+  color: white;
+}
+
+/* ---- route card over the map ---- */
+.route-card {
+  position: absolute;
+  left: 12px;
+  right: auto;
+  bottom: 12px;
+  width: min(380px, calc(100% - 24px));
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 14px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+}
+.route-card-warn {
+  border-color: var(--warn);
+}
+.route-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+.route-card-eta {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+  color: #86efac;
+}
+.route-card-warn .route-card-eta {
+  color: #fcd34d;
+}
+.route-card-sub {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.route-card-actions {
+  display: flex;
+  gap: 6px;
+}
+.route-card-next {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: var(--bg);
+  border-radius: 10px;
+  font-size: 15px;
+}
+.route-card-arrow {
+  font-size: 20px;
+  color: var(--route);
+}
+.route-card-flag {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #fcd34d;
+}
+.route-card-progress {
+  display: flex;
+  gap: 2px;
+  margin-top: 10px;
+  height: 6px;
+}
+.route-card-progress span {
+  border-radius: 3px;
+  background: var(--route);
+  opacity: 0.85;
+}
+.route-card-progress .seg-room {
+  background: #64748b;
+}
+.route-card-progress .seg-stairwell {
+  background: var(--warn);
+}
+.route-card-progress .seg-exit,
+.route-card-progress .seg-refuge {
+  background: var(--ok);
+}
+.asset-card {
+  display: none;
+}
+
+/* ---- legend / layers ---- */
+.legend {
+  position: absolute;
+  right: 12px;
+  top: 56px;
+  width: 280px;
+  max-height: calc(100% - 80px);
+  overflow: auto;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  z-index: 5;
+}
+.legend-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 4px 0 6px;
+}
+.legend-list,
+.legend-toggles {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+.legend-list li {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.legend svg .poi rect,
+.legend svg rect {
+  stroke: #0b1220;
+  stroke-width: 0.6;
+}
+.legend svg text {
+  fill: white;
+  font-weight: 700;
+}
+
+/* ---- incident status stepper + unified timeline ---- */
+.stepper {
+  list-style: none;
+  display: flex;
+  gap: 0;
+  padding: 0;
+  margin: 8px 0 10px;
+}
+.stepper li {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  text-transform: capitalize;
+  color: var(--muted);
+  position: relative;
+}
+.stepper li::after {
+  content: '';
+  flex: 1;
+  height: 2px;
+  background: var(--line);
+  margin: 0 6px;
+}
+.stepper li:last-child::after {
+  display: none;
+}
+.step-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: var(--bg);
+}
+.stepper li.reached {
+  color: var(--fg);
+}
+.stepper li.reached .step-dot {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.stepper li.reached::after {
+  background: var(--accent);
+}
+.stepper li.current {
+  font-weight: 700;
+}
+.pill.sev-pill-critical {
+  border-color: var(--danger);
+  color: #fca5a5;
+}
+.pill.sev-pill-high {
+  border-color: #f97316;
+  color: #fdba74;
+}
+.pill.sev-pill-medium {
+  border-color: var(--warn);
+  color: #fcd34d;
+}
+.timeline li {
+  display: grid;
+  grid-template-columns: 64px 14px 1fr;
+  gap: 8px;
+  align-items: start;
+  border-left: none;
+  padding: 6px 0;
+}
+.tl-time {
+  font-size: 11px;
+  color: var(--muted);
+  padding-top: 3px;
+  font-variant-numeric: tabular-nums;
+}
+.tl-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-top: 4px;
+  background: var(--muted);
+}
+.tl-update .tl-dot {
+  background: var(--route);
+}
+.tl-alert .tl-dot {
+  background: var(--danger);
+}
+.tl-ack .tl-dot {
+  background: var(--ok);
+}
+.tl-help .tl-dot {
+  background: var(--danger);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25);
+}
+.tl-declared .tl-dot {
+  background: var(--accent);
+}
+
+/* ---- status page ---- */
+.status-hero {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+.status-hero-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  font-weight: 700;
+  background: var(--bg);
+}
+.status-hero.lvl-READY {
+  border-color: var(--ok);
+}
+.status-hero.lvl-READY .status-hero-icon {
+  color: #86efac;
+}
+.status-hero.lvl-DEGRADED {
+  border-color: var(--warn);
+}
+.status-hero.lvl-DEGRADED .status-hero-icon {
+  color: #fcd34d;
+}
+.status-hero.lvl-ERROR {
+  border-color: var(--danger);
+}
+.status-hero.lvl-ERROR .status-hero-icon {
+  color: #fca5a5;
+}
+.status-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.status-list li {
+  display: grid;
+  grid-template-columns: 12px 1fr auto;
+  column-gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+  align-items: center;
+}
+.status-list .status-reason {
+  grid-column: 2 / 4;
+}
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.dot-ok {
+  background: var(--ok);
+}
+.dot-degraded,
+.dot-unknown {
+  background: var(--warn);
+}
+.dot-missing,
+.dot-error {
+  background: var(--danger);
+}
+.status-name {
+  text-transform: capitalize;
+}
+.status-state {
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
+/* ---- check-in grid ---- */
+.checkin-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 8px 0;
+}
+.checkin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 6px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+.checkin-icon {
+  font-size: 22px;
+}
+.checkin-safe.on {
+  background: #052e16;
+  border-color: var(--ok);
+}
+.checkin-evacuated.on {
+  background: #0c2340;
+  border-color: var(--route);
+}
+.checkin-needs_help {
+  border-color: var(--danger);
+}
+.checkin-needs_help.on {
+  background: #3f1212;
+}

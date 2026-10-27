@@ -61,18 +61,37 @@ export function DiagnosticsPane({ lastRoute }: { lastRoute: RouteSummary | null 
   return (
     <div className="pane">
       <h2>Diagnostics</h2>
+      <section className={`card status-hero lvl-${s.readiness?.level ?? 'ERROR'}`}>
+        <div className="status-hero-icon" aria-hidden>
+          {s.readiness?.level === 'READY' ? '✓' : s.readiness?.level === 'DEGRADED' ? '!' : '✕'}
+        </div>
+        <div>
+          <h3>
+            {s.readiness?.level === 'READY'
+              ? 'Offline ready — all Tier-0 components present'
+              : s.readiness?.level === 'DEGRADED'
+                ? 'Degraded — the console works, with limits'
+                : s.readiness
+                  ? 'Not offline ready'
+                  : 'Checking…'}
+          </h3>
+          <p className="muted small">
+            {s.readiness?.reasons.length
+              ? `${s.readiness.reasons.length} component(s) need attention`
+              : 'Nothing needs attention'}{' '}
+            · evaluated {s.readiness ? new Date(s.readiness.evaluatedAt).toLocaleTimeString() : '—'}
+          </p>
+        </div>
+      </section>
       <section className="card">
-        <h3>
-          Offline readiness:{' '}
-          <span className={`pill lvl-${s.readiness?.level ?? 'ERROR'}`}>
-            {s.readiness?.level ?? '…'}
-          </span>
-        </h3>
-        <ul className="small list">
+        <h3>Components</h3>
+        <ul className="status-list">
           {s.readiness?.components.map((c) => (
             <li key={c.component} className={`comp-${c.state}`}>
-              <code>{c.component}</code> {c.state}
-              {c.reason ? ` — ${c.reason}` : ''}
+              <span className={`dot dot-${c.state}`} aria-hidden />
+              <span className="status-name">{c.component.replace(/_/g, ' ')}</span>
+              <span className="status-state">{c.state}</span>
+              {c.reason ? <span className="status-reason muted small">{c.reason}</span> : null}
             </li>
           ))}
         </ul>

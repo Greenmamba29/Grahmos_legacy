@@ -13,6 +13,9 @@ import { useRuntime, useRuntimeState } from './app/store';
 import { FloorCanvas } from './map/FloorCanvas';
 import { GeoMap } from './map/GeoMap';
 import { usePosition } from './map/usePosition';
+import { RouteCard } from './map/RouteCard';
+import { Legend, DEFAULT_LAYERS, type MapLayers } from './map/Legend';
+import { AlertTakeover } from './ui/AlertTakeover';
 import { LANGS, CATALOGUES, localisedPlaybook, t } from '@terranova/core';
 import { PaneBoundary } from './ui/PaneBoundary';
 import { IncidentPane } from './panes/IncidentPane';
@@ -36,6 +39,8 @@ export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [recovery, setRecovery] = useState(0);
   const [view, setView] = useState<'floor' | 'site'>('floor');
+  const [layers, setLayers] = useState<MapLayers>(DEFAULT_LAYERS);
+  const [legendOpen, setLegendOpen] = useState(false);
 
   useEffect(() => {
     void rt.boot();
@@ -219,6 +224,13 @@ export default function App() {
           {pack?.manifest.provenance.validation === 'fixture' && (
             <span className="pill warn">{t(lang, 'fixture.badge')}</span>
           )}
+          <button
+            className={`small${legendOpen ? ' on' : ''}`}
+            onClick={() => setLegendOpen((v) => !v)}
+            aria-expanded={legendOpen}
+          >
+            Legend
+          </button>
         </div>
         <PaneBoundary
           name="SafetyMap"
@@ -245,6 +257,7 @@ export default function App() {
               alternate={plan?.alternate ?? null}
               highlightAssets={highlight}
               clickMode={clickMode}
+              layers={layers}
               onSetOrigin={(p) => {
                 position.setManual(p);
                 setClickMode('none');
@@ -275,14 +288,38 @@ export default function App() {
             </div>
           )}
         </PaneBoundary>
-        {assetRoute && playbook?.autoRoute.kind === 'asset' && (
-          <div className="asset-card">
-            Nearest {playbook.autoRoute.asset.replace('_', ' ').toUpperCase()}:{' '}
-            <strong>{assetRoute.destination}</strong> · {assetRoute.distanceFt} ft ·{' '}
-            {assetRoute.etaSeconds}s
-          </div>
+        {legendOpen && (
+          <Legend layers={layers} onLayers={setLayers} onClose={() => setLegendOpen(false)} />
+        )}
+        {floor && (plan?.primary ?? assetRoute) && (
+          <RouteCard
+            floor={floor}
+            route={(plan?.primary ?? assetRoute)!}
+            label={
+              playbook?.autoRoute.kind === 'asset'
+                ? `nearest ${playbook.autoRoute.asset.replace('_', ' ')}`
+                : mode
+            }
+            onDetails={() => setModule('routing')}
+            onEnd={
+              destination || origin
+                ? () => {
+                    setDestination(null);
+                    position.clearScan();
+                  }
+                : undefined
+            }
+          />
         )}
       </main>
+      <AlertTakeover
+        incidents={incidents}
+        onShowRoute={(inc) => {
+          setSelectedId(inc.id);
+          if (inc.level) setLevelName(inc.level);
+          setModule('routing');
+        }}
+      />
 
       <aside className="side">
         <PaneBoundary name="Pane" recoveryKey={`${module}:${recovery}`}>

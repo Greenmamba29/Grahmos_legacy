@@ -12,6 +12,8 @@ import {
   type PointerEvent as RPointerEvent,
   type WheelEvent as RWheelEvent,
 } from 'react';
+import type { MapLayers } from './Legend';
+import { DEFAULT_LAYERS } from './Legend';
 import {
   floorBounds,
   floorDoors,
@@ -39,6 +41,7 @@ export interface FloorCanvasProps {
   onSetHazard?: (p: Pt) => void;
   /** 'origin' sets you-are-here on click; 'hazard' places the incident. */
   clickMode: 'origin' | 'hazard' | 'none';
+  layers?: MapLayers | undefined;
 }
 
 const POI_GLYPH: Record<AmenityCategory, { glyph: string; cls: string; label: string }> = {
@@ -56,6 +59,7 @@ const POI_GLYPH: Record<AmenityCategory, { glyph: string; cls: string; label: st
 
 export function FloorCanvas(props: FloorCanvasProps) {
   const { floor, origin, hazard, primary, alternate, clickMode, highlightAssets = [] } = props;
+  const layers = props.layers ?? DEFAULT_LAYERS;
   const svgRef = useRef<SVGSVGElement>(null);
   const bounds = useMemo(() => floorBounds(floor), [floor]);
   const units = useMemo(() => floorUnits(floor), [floor]);
@@ -154,27 +158,29 @@ export function FloorCanvas(props: FloorCanvasProps) {
           height={vb.h + 2000}
           className="floor-bg"
         />
-        {comps.map((c) => (
-          <g key={`c-${c.id}`}>
-            <polygon points={c.ring.map(P).join(' ')} className="compartment" />
-            <text x={c.ring[0]![0] + 2} y={-c.ring[2]![1] + 5} className="compartment-label">
-              {c.name}
-            </text>
-          </g>
-        ))}
+        {layers.compartments &&
+          comps.map((c) => (
+            <g key={`c-${c.id}`}>
+              <polygon points={c.ring.map(P).join(' ')} className="compartment" />
+              <text x={c.ring[0]![0] + 2} y={-c.ring[2]![1] + 5} className="compartment-label">
+                {c.name}
+              </text>
+            </g>
+          ))}
         {units.map((u) => (
           <g key={`u-${u.id}-${u.name}`}>
             <polygon points={u.ring.map(P).join(' ')} className={`unit unit-${u.category}`} />
-            {u.category !== 'walkway' && (
+            {layers.labels && u.category !== 'walkway' && (
               <text x={u.centroid[0]} y={-u.centroid[1]} className="unit-label" textAnchor="middle">
                 {u.name}
               </text>
             )}
           </g>
         ))}
-        {doors.map((d) => (
-          <circle key={`d-${d.id}`} cx={d.xy[0]} cy={-d.xy[1]} r={1.1} className="door" />
-        ))}
+        {layers.doors &&
+          doors.map((d) => (
+            <circle key={`d-${d.id}`} cx={d.xy[0]} cy={-d.xy[1]} r={1.1} className="door" />
+          ))}
         {hazard && (
           <g>
             <circle cx={hazard.x} cy={-hazard.y} r={HAZARD_RADIUS_M} className="hazard-zone" />
@@ -189,29 +195,32 @@ export function FloorCanvas(props: FloorCanvasProps) {
             </text>
           </g>
         )}
-        {alternate && <polyline points={poly(alternate.points)} className="route route-alt" />}
+        {layers.alternate && alternate && (
+          <polyline points={poly(alternate.points)} className="route route-alt" />
+        )}
         {primary && (
           <polyline
             points={poly(primary.points)}
             className={`route route-primary${primary.throughHazard ? ' route-through-hazard' : ''}`}
           />
         )}
-        {pois.map((p) => {
-          const g = POI_GLYPH[p.category];
-          const hot = highlighted.has(p.category);
-          return (
-            <g
-              key={`p-${p.category}-${p.id}`}
-              className={`poi ${g.cls}${hot ? ' poi-hot' : ''}${p.accessible ? '' : ' poi-inaccessible'}`}
-            >
-              <title>{`${g.label}: ${p.name}${p.accessible ? '' : ' (not step-free)'}`}</title>
-              <rect x={p.xy[0] - 3.2} y={-p.xy[1] - 2} width={6.4} height={4} rx={0.8} />
-              <text x={p.xy[0]} y={-p.xy[1] + 1.3} textAnchor="middle">
-                {g.glyph}
-              </text>
-            </g>
-          );
-        })}
+        {layers.pois &&
+          pois.map((p) => {
+            const g = POI_GLYPH[p.category];
+            const hot = highlighted.has(p.category);
+            return (
+              <g
+                key={`p-${p.category}-${p.id}`}
+                className={`poi ${g.cls}${hot ? ' poi-hot' : ''}${p.accessible ? '' : ' poi-inaccessible'}`}
+              >
+                <title>{`${g.label}: ${p.name}${p.accessible ? '' : ' (not step-free)'}`}</title>
+                <rect x={p.xy[0] - 3.2} y={-p.xy[1] - 2} width={6.4} height={4} rx={0.8} />
+                <text x={p.xy[0]} y={-p.xy[1] + 1.3} textAnchor="middle">
+                  {g.glyph}
+                </text>
+              </g>
+            );
+          })}
         {origin && (
           <g className={`you-are-here${props.fix && !props.fix.confident ? ' yah-stale' : ''}`}>
             {props.fix && Number.isFinite(props.fix.accuracyM) && props.fix.accuracyM > 0 && (

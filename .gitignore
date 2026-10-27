@@ -13,3 +13,5 @@ coverage/
 dist-types/
 *.tsbuildinfo
 offline-drill-failure.png
+relay-packs/
+relay-log.jsonl

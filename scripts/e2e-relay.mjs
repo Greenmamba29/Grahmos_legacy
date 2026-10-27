@@ -26,12 +26,14 @@ try {
 const PORT = 4181;
 const RELAY = 8791;
 const root = new URL('..', import.meta.url).pathname;
+const tmp = mkdtempSync(join(tmpdir(), 'tn-relay-'));
 const relay = spawn('node', [join(root, 'packages/relay/dist/main.js')], {
   env: {
     ...process.env,
     RELAY_PORT: String(RELAY),
     RELAY_HOST: '127.0.0.1',
-    RELAY_LOG: join(mkdtempSync(join(tmpdir(), 'tn-relay-')), 'log.jsonl'),
+    RELAY_LOG: join(tmp, 'log.jsonl'),
+    RELAY_PACKS: join(tmp, 'packs'),
   },
   stdio: 'ignore',
   detached: true,
@@ -91,9 +93,14 @@ try {
   step('A: fire declared + alert broadcast; outbox flushed to the relay');
 
   await B.getByRole('button', { name: 'Sync now' }).first().click();
+  // The incoming alert takes over B's screen with one primary action (alert-takeover pattern).
+  await B.waitForSelector('.takeover', { timeout: 15000 });
+  if (process.env.SHOT_DIR)
+    await B.screenshot({ path: `${process.env.SHOT_DIR}/screen-alert-takeover.png` });
+  await B.getByRole('button', { name: /Acknowledge alert/ }).click();
+  await B.waitForSelector('.takeover', { state: 'detached', timeout: 15000 });
   await B.waitForSelector('.banner', { timeout: 15000 });
   await B.getByRole('button', { name: /^comms/ }).click();
-  await B.getByRole('button', { name: 'Acknowledge', exact: true }).click();
   await B.waitForSelector('text=1 ack');
   await B.getByRole('button', { name: /^diagnostics/ }).click();
   await B.getByRole('button', { name: 'Sync now' }).first().click();
@@ -119,7 +126,8 @@ try {
     body: zip,
     headers: { 'content-type': 'application/zip' },
   });
-  if (pub.status !== 201) throw new Error(`relay refused the fixture pack: HTTP ${pub.status}`);
+  if (pub.status !== 201 && pub.status !== 409)
+    throw new Error(`relay refused the fixture pack: HTTP ${pub.status}`);
   await B.getByRole('button', { name: /^diagnostics/ }).click();
   await B.getByRole('button', { name: 'List packs on relay' }).click();
   await B.getByRole('button', { name: /Install \(re-verified on device\)/ }).click();

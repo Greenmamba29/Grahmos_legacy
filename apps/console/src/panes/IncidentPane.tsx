@@ -175,11 +175,29 @@ export function IncidentPane(p: IncidentPaneProps) {
 
       {selected && (
         <section className="card">
-          <h3>{selected.title}</h3>
+          <div className="row" style={{ justifyContent: 'space-between' }}>
+            <h3 style={{ margin: 0 }}>{selected.title}</h3>
+            <span className={`pill sev-pill-${selected.severity}`}>{selected.severity}</span>
+          </div>
           <p className="muted small">
             Declared {new Date(selected.startedAt).toLocaleTimeString()} by{' '}
             {selected.declaredBy.name} · {selected.eventCount} events
           </p>
+          <ol className="stepper" aria-label="Incident status">
+            {(['active', 'contained', 'resolved'] as const).map((st, i) => {
+              const order = { active: 0, contained: 1, resolved: 2 } as const;
+              const reached = order[selected.status] >= i;
+              return (
+                <li
+                  key={st}
+                  className={`${reached ? 'reached' : ''} ${selected.status === st ? 'current' : ''}`}
+                >
+                  <span className="step-dot" aria-hidden />
+                  <span>{st}</span>
+                </li>
+              );
+            })}
+          </ol>
           <div className="row">
             {selected.status !== 'contained' && selected.status !== 'resolved' && (
               <button
@@ -231,14 +249,51 @@ export function IncidentPane(p: IncidentPaneProps) {
             Add to log
           </button>
           <ol className="timeline">
-            {[...selected.updates].reverse().map((u) => (
-              <li key={u.id}>
-                <span className="muted small">
-                  {new Date(u.at).toLocaleTimeString()} · {u.actor.name}
-                </span>
-                <div>{u.body}</div>
-              </li>
-            ))}
+            {[
+              ...selected.updates.map((u) => ({
+                at: u.at,
+                who: u.actor.name,
+                kind: 'update',
+                text: u.body,
+              })),
+              ...selected.alerts.map((a) => ({
+                at: a.at,
+                who: a.actor.name,
+                kind: 'alert',
+                text: `Alert: ${a.title} (${a.acks.length} ack${a.acks.length === 1 ? '' : 's'})`,
+              })),
+              ...selected.alerts.flatMap((a) =>
+                a.acks.map((k) => ({
+                  at: k.at,
+                  who: k.actor.name,
+                  kind: 'ack',
+                  text: `Acknowledged “${a.title}”${k.note ? ` — ${k.note}` : ''}`,
+                })),
+              ),
+              ...selected.checkins.map((c) => ({
+                at: c.at,
+                who: c.actor.name,
+                kind: c.status === 'needs_help' ? 'help' : 'checkin',
+                text: `Check-in: ${c.status.replace('_', ' ')}${c.location ? ` at ${c.location}` : ''}`,
+              })),
+              {
+                at: selected.startedAt,
+                who: selected.declaredBy.name,
+                kind: 'declared',
+                text: `Declared ${selected.type} at ${selected.location}, ${selected.level}`,
+              },
+            ]
+              .sort((x, y) => (x.at < y.at ? 1 : -1))
+              .map((e, idx) => (
+                <li key={idx} className={`tl-${e.kind}`}>
+                  <span className="tl-time">{new Date(e.at).toLocaleTimeString()}</span>
+                  <span className="tl-dot" aria-hidden />
+                  <span className="tl-body">
+                    <span className="muted small">{e.who}</span>
+                    <div>{e.text}</div>
+                  </span>
+                </li>
+              ))}
           </ol>
         </section>
       )}
