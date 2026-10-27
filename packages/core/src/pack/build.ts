@@ -9,6 +9,7 @@ import {
 } from '../safetymap/floor.js';
 import { extractNavGraph, unreachableRooms } from '../safetymap/graph.js';
 import { PACK_FORMAT, type PackManifest, type PackProvenance, isSemver } from './manifest.js';
+import type { VenueAnchor } from '../geo/anchor.js';
 import { u8, writeZip, type PackFiles } from './zip.js';
 
 export interface BuildInput {
@@ -19,6 +20,7 @@ export interface BuildInput {
   /** level name → floor */
   floors: Record<string, FeatureCollection>;
   provenance: PackProvenance;
+  anchor?: VenueAnchor | undefined;
   languages?: string[];
   procedures?: { documents: Array<{ id: string; title: string; kind: string; body: string }> };
   pois?: FeatureCollection;
@@ -120,6 +122,7 @@ export function buildPackFiles(input: BuildInput): { files: PackFiles; manifest:
     hashes,
     stats: { levels: input.levels.length, exits, aeds, first_aid: firstAid, refuges },
     provenance: input.provenance,
+    ...(input.anchor ? { anchor: input.anchor } : {}),
   };
   return { files, manifest };
 }

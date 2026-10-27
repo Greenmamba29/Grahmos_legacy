@@ -614,3 +614,20 @@ code {
     min-height: 42vh;
   }
 }
+
+/* ---- geo map ---- */
+.geo-map {
+  flex: 1;
+  min-height: 320px;
+}
+.geo-map .maplibregl-ctrl-attrib {
+  font-size: 10px;
+  background: rgba(11, 18, 32, 0.8);
+  color: var(--muted);
+}
+.geo-map .maplibregl-ctrl-group {
+  background: var(--bg-3);
+}
+.geo-map .maplibregl-ctrl-group button {
+  filter: invert(0.85);
+}

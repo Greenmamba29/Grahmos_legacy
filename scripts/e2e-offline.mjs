@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* global caches */
+/* global caches, document */
 /**
  * Installed-device offline drill, automated.
  *
@@ -97,6 +97,27 @@ try {
   step(
     `OFFLINE reload: map, incident and route restored from the device (connectivity band: ${band?.trim()})`,
   );
+  // Site map (MapLibre) with the network still cut: the view must come up from the installed pack.
+  await page.getByRole('button', { name: 'Site map' }).click();
+  const geo = await page.waitForSelector('[data-testid="geo-map"]', { timeout: 10000 });
+  const hasCanvas = await geo.evaluate((n) => !!n.querySelector('canvas'));
+  const webgl = await page.evaluate(() => {
+    try {
+      return (
+        !!document.createElement('canvas').getContext('webgl2') ||
+        !!document.createElement('canvas').getContext('webgl')
+      );
+    } catch {
+      return false;
+    }
+  });
+  if (webgl && !hasCanvas) throw new Error('site map did not create a MapLibre canvas');
+  step(
+    webgl
+      ? 'site map rendered offline from the signed anchor (MapLibre canvas present)'
+      : 'site map: WebGL unavailable in this browser, view mounted without a canvas (skipped)',
+  );
+  await page.getByRole('button', { name: 'Floor plan' }).click();
   await page.getByRole('button', { name: /^routing/ }).click();
   await page.waitForSelector('.board tbody tr');
   const rows = await page.$$eval('.board tbody tr', (trs) => trs.map((t) => t.textContent));

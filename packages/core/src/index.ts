@@ -7,4 +7,5 @@ export * from './pack/index.js';
 export * from './search/index.js';
 export * from './importers/index.js';
 export * from './audit/index.js';
+export * from './geo/index.js';
 export const TERRANOVA_CORE_VERSION = '0.1.0';

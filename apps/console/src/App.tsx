@@ -11,6 +11,7 @@ import {
 } from '@terranova/core';
 import { useRuntime, useRuntimeState } from './app/store';
 import { FloorCanvas } from './map/FloorCanvas';
+import { GeoMap } from './map/GeoMap';
 import { PaneBoundary } from './ui/PaneBoundary';
 import { IncidentPane } from './panes/IncidentPane';
 import { CommsPane } from './panes/CommsPane';
@@ -32,6 +33,7 @@ export default function App() {
   const [destination, setDestination] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [recovery, setRecovery] = useState(0);
+  const [view, setView] = useState<'floor' | 'site'>('floor');
 
   useEffect(() => {
     void rt.boot();
@@ -171,6 +173,16 @@ export default function App() {
               </button>
             ))}
           </div>
+          {pack?.manifest.anchor && (
+            <div className="seg" role="tablist" aria-label="Map view">
+              <button className={view === 'floor' ? 'on' : ''} onClick={() => setView('floor')}>
+                Floor plan
+              </button>
+              <button className={view === 'site' ? 'on' : ''} onClick={() => setView('site')}>
+                Site map
+              </button>
+            </div>
+          )}
           {pack?.manifest.provenance.validation === 'fixture' && (
             <span className="pill warn">engineering fixture — not a real venue</span>
           )}
@@ -179,7 +191,18 @@ export default function App() {
           name="SafetyMap"
           recoveryKey={`${venueSlug}:${activeLevel?.name}:${recovery}`}
         >
-          {floor ? (
+          {floor && view === 'site' && pack?.manifest.anchor ? (
+            <GeoMap
+              floor={floor}
+              anchor={pack.manifest.anchor}
+              basemap={pack.basemap}
+              basemapKey={`${venueSlug}@${pack.manifest.version}`}
+              origin={origin}
+              hazard={hazard}
+              primary={plan?.primary ?? assetRoute}
+              alternate={plan?.alternate ?? null}
+            />
+          ) : floor ? (
             <FloorCanvas
               floor={floor}
               origin={origin}

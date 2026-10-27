@@ -19,6 +19,7 @@ import { canonicalize } from '../crypto/canonicalJson.js';
 import { fromHex } from '../crypto/hex.js';
 import { KeyMaterialError, sign, verify } from '../crypto/ed25519.js';
 import { toHex } from '../crypto/hex.js';
+import type { VenueAnchor } from '../geo/anchor.js';
 
 export const PACK_FORMAT = 3;
 
@@ -54,6 +55,8 @@ export interface PackManifest {
   hashes: Record<string, string>;
   stats: { levels: number; exits: number; aeds: number; first_aid: number; refuges: number };
   provenance: PackProvenance;
+  /** WGS84 position + rotation of the metre-grid origin. Absent = floor-plan view only. */
+  anchor?: VenueAnchor;
   signature?: PackSignature;
 }
 
@@ -61,11 +64,13 @@ export interface SignableFields {
   venue_slug: string;
   version: string;
   hashes: Record<string, string>;
+  /** Signed too: moving a venue on the map is as dangerous as moving an exit. */
+  anchor?: VenueAnchor | undefined;
 }
 
 /** Exact bytes signed. Build and runtime MUST derive this identically. */
 export function signingPayload(f: SignableFields): string {
-  return canonicalize({ venue_slug: f.venue_slug, version: f.version, hashes: f.hashes });
+  return canonicalize({ venue_slug: f.venue_slug, version: f.version, hashes: f.hashes, ...(f.anchor ? { anchor: f.anchor } : {}) });
 }
 
 export function signManifest(

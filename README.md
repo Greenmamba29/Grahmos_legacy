@@ -43,6 +43,7 @@ origin reachable. CI runs it on every push.
 • alert broadcast and acknowledged locally
 • outbox holds 3 durable writes
 • OFFLINE reload: map, incident and route restored from the device (connectivity band: local)
+• site map rendered offline from the signed anchor (MapLibre canvas present)
 • exit board offline: 3 exits ranked
 • event chain verified offline
 OFFLINE DRILL PASSED
@@ -50,6 +51,8 @@ OFFLINE DRILL PASSED
 
 (`DEGRADED`, not `READY`, in headless Chromium: persistent storage is declined there and the
 console says so instead of hiding it.)
+
+![Console: fire declared, hazard-aware route, exit board](docs/console-fire-routing.png)
 
 ## Layout
 

@@ -145,6 +145,8 @@ export async function main(argv: string[]): Promise<number> {
                 validation: 'fixture' as const,
                 limitations: ['Not a real facility. Never deploy for operations.'],
               },
+              // Fixture anchor: an arbitrary point in Sacramento, CA. Not a real facility.
+              anchor: { lng: -121.4443, lat: 38.5679, rotationDeg: 0 },
               procedures: HOSPITAL_PROCEDURES,
             }
           : {
@@ -158,6 +160,8 @@ export async function main(argv: string[]): Promise<number> {
                 validation: 'fixture' as const,
                 limitations: ['Not a real venue. Never deploy for operations.'],
               },
+              // Fixture anchor: an arbitrary point in Seattle, WA. Not a real venue.
+              anchor: { lng: -122.3313, lat: 47.5951, rotationDeg: 0 },
               procedures: STADIUM_PROCEDURES,
             };
       const { files, manifest } = buildPackFiles({
@@ -185,6 +189,7 @@ export async function main(argv: string[]): Promise<number> {
         levels: Array<{ id: string; name: string; ordinal: number }>;
         floors: Record<string, string>;
         provenance: PackManifest['provenance'];
+        anchor?: PackManifest['anchor'];
         procedures?: string;
       }>(specPath);
       const base = dirname(resolve(specPath));
