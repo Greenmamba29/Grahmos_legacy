@@ -631,3 +631,21 @@ code {
 .geo-map .maplibregl-ctrl-group button {
   filter: invert(0.85);
 }
+
+/* ---- position provenance ---- */
+.poi-checkpoint rect {
+  fill: #7c3aed;
+}
+.yah-accuracy {
+  fill: rgba(94, 234, 212, 0.08);
+  stroke: rgba(94, 234, 212, 0.5);
+  stroke-width: 0.4;
+  stroke-dasharray: 1.5 1;
+}
+.yah-stale .yah-dot {
+  fill: #94a3b8;
+}
+.yah-stale .yah-pulse {
+  animation: none;
+  fill: rgba(148, 163, 184, 0.2);
+}

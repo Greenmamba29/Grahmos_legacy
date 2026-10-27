@@ -18,6 +18,7 @@ import {
   floorPois,
   floorUnits,
   compartmentsOf,
+  RENDERABLE_AMENITIES,
   HAZARD_RADIUS_M,
   type Floor,
   type Pt,
@@ -28,6 +29,8 @@ import {
 export interface FloorCanvasProps {
   floor: Floor;
   origin: Pt | null;
+  /** Position provenance for the dot: accuracy ring + confidence styling. */
+  fix?: { accuracyM: number; confident: boolean; source: string } | undefined;
   hazard: Pt | null;
   primary: RouteSummary | null;
   alternate: RouteSummary | null;
@@ -46,6 +49,7 @@ const POI_GLYPH: Record<AmenityCategory, { glyph: string; cls: string; label: st
   fire_extinguisher: { glyph: 'FX', cls: 'poi-ext', label: 'Extinguisher' },
   assembly: { glyph: 'AP', cls: 'poi-assembly', label: 'Assembly point' },
   refuge: { glyph: 'R', cls: 'poi-refuge', label: 'Area of refuge' },
+  checkpoint: { glyph: 'QR', cls: 'poi-checkpoint', label: 'Checkpoint' },
   you_are_here: { glyph: '', cls: '', label: 'You are here' },
   incident: { glyph: '', cls: '', label: 'Incident' },
 };
@@ -55,7 +59,10 @@ export function FloorCanvas(props: FloorCanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const bounds = useMemo(() => floorBounds(floor), [floor]);
   const units = useMemo(() => floorUnits(floor), [floor]);
-  const pois = useMemo(() => floorPois(floor), [floor]);
+  const pois = useMemo(
+    () => floorPois(floor, new Set([...RENDERABLE_AMENITIES, 'checkpoint'])),
+    [floor],
+  );
   const doors = useMemo(() => floorDoors(floor), [floor]);
   const comps = useMemo(() => compartmentsOf(floor), [floor]);
 
@@ -206,7 +213,15 @@ export function FloorCanvas(props: FloorCanvasProps) {
           );
         })}
         {origin && (
-          <g className="you-are-here">
+          <g className={`you-are-here${props.fix && !props.fix.confident ? ' yah-stale' : ''}`}>
+            {props.fix && Number.isFinite(props.fix.accuracyM) && props.fix.accuracyM > 0 && (
+              <circle
+                cx={origin.x}
+                cy={-origin.y}
+                r={props.fix.accuracyM}
+                className="yah-accuracy"
+              />
+            )}
             <circle cx={origin.x} cy={-origin.y} r={3} className="yah-pulse" />
             <circle cx={origin.x} cy={-origin.y} r={1.6} className="yah-dot" />
           </g>

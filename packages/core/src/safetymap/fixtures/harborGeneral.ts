@@ -54,5 +54,8 @@ export const HARBOR_GENERAL_W3 = floor([
   amenity('aedN', 'aed', 'AED — Nurse Station', [-14, 10]),
   amenity('aedW2', 'aed', 'AED — Ward 311', [50, 10]),
   amenity('extA', 'fire_extinguisher', 'Extinguisher A', [-40, 5]),
+  amenity('cpIcu', 'checkpoint', 'Checkpoint ICU doors', [-48, 7]),
+  amenity('cpNurse', 'checkpoint', 'Checkpoint Nurse Station', [-12, 7]),
+  amenity('cpWard', 'checkpoint', 'Checkpoint Ward 310', [36, 7]),
   amenity('youHereH', 'you_are_here', 'You Are Here', [-55, 18]),
 ]);

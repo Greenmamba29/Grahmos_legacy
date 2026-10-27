@@ -30,6 +30,7 @@ export type AmenityCategory =
   | 'fire_extinguisher'
   | 'assembly'
   | 'refuge'
+  | 'checkpoint'
   | 'you_are_here'
   | 'incident';
 
@@ -41,6 +42,7 @@ export const AMENITY_CATEGORIES: readonly AmenityCategory[] = [
   'fire_extinguisher',
   'assembly',
   'refuge',
+  'checkpoint',
   'you_are_here',
   'incident',
 ];

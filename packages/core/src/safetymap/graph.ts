@@ -190,6 +190,7 @@ export function extractNavGraph(floor: FeatureCollection, options: ExtractOption
     if (fType(f) !== 'amenity' || f.geometry.type !== 'Point') continue;
     const c = (f.geometry as Point).coordinates;
     const category = String(f.properties?.category ?? '');
+    if (category === 'checkpoint') continue; // surveyed markers position people; they are not destinations
     const label = `amenity:${fid(f)}`;
     if (!finite(c)) {
       malformed.push(label);

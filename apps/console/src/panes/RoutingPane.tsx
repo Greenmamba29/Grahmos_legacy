@@ -9,6 +9,8 @@ import {
   type RoutePlan,
 } from '@terranova/core';
 import { useMemo } from 'react';
+import { floorPois } from '@terranova/core';
+import type { PositionController } from '../map/usePosition';
 
 export interface RoutingPaneProps {
   floor: Floor;
@@ -22,6 +24,7 @@ export interface RoutingPaneProps {
   clickMode: 'origin' | 'hazard' | 'none';
   onClickMode: (m: 'origin' | 'hazard' | 'none') => void;
   onClearOrigin: () => void;
+  position: PositionController;
 }
 
 const MODE_LABEL: Record<RouteMode, string> = {
@@ -43,6 +46,8 @@ export function RoutingPane(p: RoutingPaneProps) {
     () => exitBoard({ floor: p.floor, originXY: p.origin, hazardXY: p.hazard }),
     [p.floor, p.origin, p.hazard],
   );
+  const checkpoints = useMemo(() => floorPois(p.floor, new Set(['checkpoint'])), [p.floor]);
+  const fix = p.position.fix;
 
   return (
     <div className="pane">
@@ -83,10 +88,53 @@ export function RoutingPane(p: RoutingPaneProps) {
             </button>
           )}
         </div>
+        <p className={`small ${fix.source === 'none' ? 'muted' : fix.confident ? 'ok' : 'warn'}`}>
+          Position:{' '}
+          {fix.source === 'none'
+            ? 'floor default "you are here"'
+            : `${fix.source} ±${Number.isFinite(fix.accuracyM) ? Math.round(fix.accuracyM) : '?'} m`}{' '}
+          — {fix.reason}
+          {!fix.confident && fix.source !== 'none'
+            ? '. Not confident: routes start from the floor default.'
+            : ''}
+        </p>
+      </section>
+
+      <section className="card">
+        <h3>Position source</h3>
+        <label>
+          Scan a surveyed checkpoint (QR/NFC marker)
+          <select
+            value={p.position.scan?.id ?? ''}
+            onChange={(e) => {
+              const cp = checkpoints.find((c) => c.id === e.target.value);
+              if (cp) p.position.scanCheckpoint({ id: cp.id, xy: { x: cp.xy[0], y: cp.xy[1] } });
+              else p.position.clearScan();
+            }}
+          >
+            <option value="">— none —</option>
+            {checkpoints.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="row">
+          {!p.position.gnssWatching ? (
+            <button onClick={p.position.startGnss}>Use satellite fix (GNSS)</button>
+          ) : (
+            <button onClick={p.position.stopGnss}>Stop GNSS</button>
+          )}
+          {p.position.gnss && (
+            <span className="muted small">last fix ±{Math.round(p.position.gnss.accuracyM)} m</span>
+          )}
+        </div>
+        {p.position.gnssError && <p className="error small">{p.position.gnssError}</p>}
         <p className="muted small">
-          {p.origin
-            ? `Position: ${p.origin.x}, ${p.origin.y} m (operator-set checkpoint)`
-            : 'Position: floor default "you are here". No GNSS is implied indoors.'}
+          A fresh checkpoint is surveyed truth. GNSS is believed only when tight ({'≤'}8 m indoors,{' '}
+          {'≤'}15 m outdoors) and recent. A stale checkpoint is drawn faded and never used as a
+          routing origin.
         </p>
       </section>
 

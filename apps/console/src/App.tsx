@@ -12,6 +12,7 @@ import {
 import { useRuntime, useRuntimeState } from './app/store';
 import { FloorCanvas } from './map/FloorCanvas';
 import { GeoMap } from './map/GeoMap';
+import { usePosition } from './map/usePosition';
 import { PaneBoundary } from './ui/PaneBoundary';
 import { IncidentPane } from './panes/IncidentPane';
 import { CommsPane } from './panes/CommsPane';
@@ -26,7 +27,7 @@ export default function App() {
   const s = useRuntimeState();
   const [module, setModule] = useState<Module>('incidents');
   const [levelName, setLevelName] = useState<string | null>(null);
-  const [origin, setOrigin] = useState<Pt | null>(null);
+  const [origin, setOrigin] = useState<Pt | null>(null); // operator-set or derived from the position fix
   const [pendingHazard, setPendingHazard] = useState<Pt | null>(null);
   const [clickMode, setClickMode] = useState<'origin' | 'hazard' | 'none'>('none');
   const [mode, setMode] = useState<RouteMode>('occupant');
@@ -45,12 +46,26 @@ export default function App() {
   const activeLevel = levels.find((l) => l.name === levelName) ?? levels[0] ?? null;
   const floor = activeLevel && pack ? (pack.floors[activeLevel.name] ?? null) : null;
   const venueSlug = pack?.manifest.venue_slug ?? 'unknown';
+  const position = usePosition(pack?.manifest.anchor, activeLevel?.isOutdoor ?? false);
+  const fixXY = position.fix.xy;
+  const fixConfident = position.fix.confident;
+  useEffect(() => {
+    setOrigin(
+      fixXY && fixConfident
+        ? { x: fixXY.x, y: fixXY.y }
+        : fixXY
+          ? { x: fixXY.x, y: fixXY.y }
+          : null,
+    );
+  }, [fixXY, fixConfident]);
 
   // Reset per-floor state when the pack or level changes.
+  const clearScan = position.clearScan;
   useEffect(() => {
     setOrigin(null);
     setPendingHazard(null);
-  }, [venueSlug, activeLevel?.name]);
+    clearScan();
+  }, [venueSlug, activeLevel?.name, clearScan]);
   useEffect(() => {
     setDestination(null);
   }, [venueSlug]);
@@ -83,26 +98,29 @@ export default function App() {
     if (auto.kind === 'evacuate') setMode(auto.mode);
   }, [selected?.id, selected?.status, selected?.type]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Only a confident fix (or an explicit operator click, which is a fresh manual checkpoint)
+  // drives routing; a stale fix is drawn faded and routes start from the floor default.
+  const routeOrigin = position.fix.confident ? origin : null;
   const plan: RoutePlan | null = useMemo(
     () =>
       floor
         ? planRoutes({
             floor,
             mode,
-            originXY: origin,
+            originXY: routeOrigin,
             hazardXY: hazard,
             destinationNodeId: destination,
           })
         : null,
-    [floor, mode, origin, hazard, destination],
+    [floor, mode, routeOrigin, hazard, destination],
   );
   const playbook = selected && selected.status !== 'resolved' ? playbookFor(selected.type) : null;
   const assetRoute = useMemo(
     () =>
       floor && playbook?.autoRoute.kind === 'asset'
-        ? nearestAsset(floor, playbook.autoRoute.asset, origin, hazard)
+        ? nearestAsset(floor, playbook.autoRoute.asset, routeOrigin, hazard)
         : null,
-    [floor, playbook, origin, hazard],
+    [floor, playbook, routeOrigin, hazard],
   );
   const highlight: AmenityCategory[] =
     playbook?.autoRoute.kind === 'asset'
@@ -206,13 +224,14 @@ export default function App() {
             <FloorCanvas
               floor={floor}
               origin={origin}
+              fix={position.fix}
               hazard={hazard}
               primary={plan?.primary ?? assetRoute}
               alternate={plan?.alternate ?? null}
               highlightAssets={highlight}
               clickMode={clickMode}
               onSetOrigin={(p) => {
-                setOrigin(p);
+                position.setManual(p);
                 setClickMode('none');
               }}
               onSetHazard={(p) => {
@@ -281,7 +300,8 @@ export default function App() {
               plan={plan}
               clickMode={clickMode}
               onClickMode={setClickMode}
-              onClearOrigin={() => setOrigin(null)}
+              onClearOrigin={() => position.clearScan()}
+              position={position}
             />
           )}
           {module === 'search' && (

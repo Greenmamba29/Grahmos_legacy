@@ -40,6 +40,10 @@ export const CITY_CENTER_L2 = floor([
   amenity('ext1', 'fire_extinguisher', 'Extinguisher 204', [-10, 5]),
   amenity('firstAid', 'first_aid', 'First Aid', [2, -30]),
   amenity('assembly', 'assembly', 'Assembly Point', [52, -30]),
+  amenity('cp201', 'checkpoint', 'Checkpoint 201 door', [-43, 7]),
+  amenity('cp204', 'checkpoint', 'Checkpoint 204 door', [1, 7]),
+  amenity('cpMain', 'checkpoint', 'Checkpoint Main Concourse', [1, -7]),
+  amenity('cpEast', 'checkpoint', 'Checkpoint East Hall', [43, -7]),
   amenity('youHere', 'you_are_here', 'You Are Here', [-2, -14]),
 ]);
 
