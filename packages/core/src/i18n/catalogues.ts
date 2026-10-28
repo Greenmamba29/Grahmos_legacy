@@ -1,0 +1,314 @@
+/**
+ * Offline safety localisation. Catalogues are STATIC and bundled: a runtime fetch of
+ * `/locales/<lang>.json` would fail exactly when the network does. Keys are flat dotted strings;
+ * `{name}` placeholders are substituted by `t()`.
+ *
+ * Scope is the operator- and occupant-facing safety surface: playbook banners, instructions,
+ * default alerts, status words. Translations were drafted for a fixture product and must be
+ * reviewed by a native speaker with emergency-management experience before any real deployment;
+ * `provenance` says so per language.
+ */
+export type Lang = 'en' | 'es' | 'ar';
+export const LANGS: readonly Lang[] = ['en', 'es', 'ar'];
+
+export interface Catalogue {
+  lang: Lang;
+  name: string;
+  dir: 'ltr' | 'rtl';
+  provenance: string;
+  strings: Record<string, string>;
+}
+
+const en: Record<string, string> = {
+  'status.ready': 'READY',
+  'status.degraded': 'DEGRADED',
+  'status.error': 'ERROR',
+  'band.full': 'online',
+  'band.degraded': 'degraded',
+  'band.local': 'offline',
+  'outbox.pending': 'outbox {n}',
+  'fixture.badge': 'engineering fixture — not a real venue',
+  'route.evacuate':
+    'EVACUATE — follow the highlighted route to the nearest clear exit. Do not use elevators.',
+  'route.medical':
+    'MEDICAL — nearest AED and first aid are highlighted. Send a runner for the AED.',
+  'route.lockdown': 'LOCKDOWN — move to the nearest securable room, lock doors, silence devices.',
+  'route.outage':
+    'OUTAGE — emergency lighting active. Stairwells and exits are marked; elevators are out.',
+  'route.severe_weather':
+    'SHELTER — move to interior rooms away from glass. Avoid exits until the all-clear.',
+  'route.hazmat': 'HAZMAT — evacuate away from the release. Routes avoid the hazard zone.',
+  'route.other': 'INCIDENT — follow operator instructions.',
+  'alert.fire.title': 'Evacuate now',
+  'alert.fire.body':
+    'Fire reported. Leave by the nearest clear exit shown on your device. Do not use elevators.',
+  'alert.medical.title': 'Medical response',
+  'alert.medical.body':
+    'Medical emergency in progress. Trained responders: retrieve the nearest AED.',
+  'alert.lockdown.title': 'Lockdown',
+  'alert.lockdown.body':
+    'Lockdown in effect. Move to a securable room, lock the door, stay silent. Await the all-clear.',
+  'alert.outage.title': 'Power outage',
+  'alert.outage.body':
+    'Power is out. Emergency lighting is active. Do not use elevators. Await instructions.',
+  'alert.severe_weather.title': 'Shelter in place',
+  'alert.severe_weather.body':
+    'Severe weather. Move to interior rooms away from windows. Do not exit the building.',
+  'alert.hazmat.title': 'Evacuate — hazardous release',
+  'alert.hazmat.body':
+    'Hazardous material released. Evacuate by the route on your device, avoiding the marked zone.',
+  'alert.other.title': 'Incident notice',
+  'alert.other.body': 'An incident has been declared. Await instructions.',
+  'instr.fire.occupant':
+    'Leave now by the highlighted route.|Do not use elevators.|Close doors behind you.|Report to the assembly point and check in.',
+  'instr.fire.responder':
+    'Approach via the responder route; hazard zone is marked.|Confirm the alarm zone and sweep rooms nearest the hazard.|Report conditions on the incident log.',
+  'instr.fire.operator':
+    'Broadcast the evacuation alert.|Watch acknowledgements and check-ins.|Log every change of status; resolve only when the all-clear is confirmed.',
+  'instr.medical.occupant': 'Keep the area clear.|If trained, begin CPR when directed.',
+  'instr.medical.responder':
+    'Retrieve the highlighted AED.|Bring the first-aid kit from the nearest station.|Log patient status on arrival.',
+  'instr.medical.operator':
+    'Dispatch the nearest responder.|Call emergency medical services if not already done.|Keep the route to the patient clear.',
+  'instr.lockdown.occupant':
+    'Get into the nearest room that locks.|Lock and barricade the door, lights off, stay silent.|Do not open the door until the all-clear comes from the console.',
+  'instr.lockdown.responder':
+    'Hold your position unless directed.|Report your location and headcount by check-in.',
+  'instr.lockdown.operator':
+    'Broadcast the lockdown alert.|Track check-ins by location.|Coordinate with law enforcement; issue the all-clear only on their confirmation.',
+  'instr.outage.occupant': 'Stay where you are unless told to move.|Do not use elevators.',
+  'instr.outage.responder':
+    'Check elevator cars for trapped occupants.|Verify critical equipment on emergency power.',
+  'instr.outage.operator':
+    'Confirm generator transfer.|Log affected areas.|Escalate to facilities.',
+  'instr.severe_weather.occupant':
+    'Move to an interior room or refuge area.|Stay away from windows.|Do not leave the building.',
+  'instr.severe_weather.responder':
+    'Direct people away from glazed areas.|Check refuge areas for capacity.',
+  'instr.severe_weather.operator':
+    'Broadcast shelter-in-place.|Monitor the weather feed when online; log conditions when not.',
+  'instr.hazmat.occupant':
+    'Leave by the highlighted route, upwind of the release.|Do not touch spilled material.',
+  'instr.hazmat.responder': 'Isolate the area at the marked radius.|Do not enter without PPE.',
+  'instr.hazmat.operator':
+    'Broadcast evacuation for affected floors.|Notify hazmat and facilities.',
+  'instr.other.occupant': 'Await instructions from the console.',
+  'instr.other.responder': 'Report to the operator for assignment.',
+  'instr.other.operator': 'Describe the incident in the log.|Choose a routing profile manually.',
+  'type.fire': 'Fire',
+  'type.medical': 'Medical',
+  'type.lockdown': 'Lockdown',
+  'type.outage': 'Power / utility outage',
+  'type.severe_weather': 'Severe weather',
+  'type.hazmat': 'Hazardous material',
+  'type.other': 'Other incident',
+  'checkin.safe': 'I am safe',
+  'checkin.evacuated': 'Evacuated',
+  'checkin.needs_help': 'Need help',
+  'ack.acknowledge': 'Acknowledge',
+  'ack.acknowledged': 'Acknowledged',
+  'rtl.notice': 'Text direction follows the language. The map and route arrows are not mirrored.',
+};
+
+const es: Record<string, string> = {
+  'status.ready': 'LISTO',
+  'status.degraded': 'DEGRADADO',
+  'status.error': 'ERROR',
+  'band.full': 'en línea',
+  'band.degraded': 'degradado',
+  'band.local': 'sin conexión',
+  'outbox.pending': 'bandeja de salida {n}',
+  'fixture.badge': 'instalación de prueba — no es un recinto real',
+  'route.evacuate':
+    'EVACUAR — siga la ruta resaltada hasta la salida despejada más cercana. No use los ascensores.',
+  'route.medical':
+    'EMERGENCIA MÉDICA — el DEA y los primeros auxilios más cercanos están resaltados. Envíe a alguien por el DEA.',
+  'route.lockdown':
+    'CONFINAMIENTO — vaya a la sala más cercana que se pueda cerrar con llave, cierre las puertas, silencie los dispositivos.',
+  'route.outage':
+    'CORTE DE ENERGÍA — iluminación de emergencia activa. Escaleras y salidas señalizadas; los ascensores no funcionan.',
+  'route.severe_weather':
+    'REFUGIO — vaya a salas interiores lejos de los cristales. No use las salidas hasta el aviso de fin de alerta.',
+  'route.hazmat':
+    'MATERIAL PELIGROSO — evacúe alejándose de la fuga. Las rutas evitan la zona de peligro.',
+  'route.other': 'INCIDENTE — siga las instrucciones del operador.',
+  'alert.fire.title': 'Evacúe ahora',
+  'alert.fire.body':
+    'Se ha reportado un incendio. Salga por la salida despejada más cercana que muestra su dispositivo. No use los ascensores.',
+  'alert.medical.title': 'Respuesta médica',
+  'alert.medical.body':
+    'Emergencia médica en curso. Personal capacitado: traigan el DEA más cercano.',
+  'alert.lockdown.title': 'Confinamiento',
+  'alert.lockdown.body':
+    'Confinamiento en vigor. Vaya a una sala que se pueda cerrar con llave, cierre la puerta y guarde silencio. Espere el fin de alerta.',
+  'alert.outage.title': 'Corte de energía',
+  'alert.outage.body':
+    'No hay energía. La iluminación de emergencia está activa. No use los ascensores. Espere instrucciones.',
+  'alert.severe_weather.title': 'Refúgiese en el lugar',
+  'alert.severe_weather.body':
+    'Clima severo. Vaya a salas interiores lejos de las ventanas. No salga del edificio.',
+  'alert.hazmat.title': 'Evacúe — fuga de material peligroso',
+  'alert.hazmat.body':
+    'Se ha liberado material peligroso. Evacúe por la ruta de su dispositivo, evitando la zona marcada.',
+  'alert.other.title': 'Aviso de incidente',
+  'alert.other.body': 'Se ha declarado un incidente. Espere instrucciones.',
+  'instr.fire.occupant':
+    'Salga ahora por la ruta resaltada.|No use los ascensores.|Cierre las puertas al salir.|Preséntese en el punto de reunión y regístrese.',
+  'instr.fire.responder':
+    'Acérquese por la ruta de respuesta; la zona de peligro está marcada.|Confirme la zona de alarma y revise las salas más cercanas al peligro.|Informe las condiciones en el registro del incidente.',
+  'instr.fire.operator':
+    'Difunda la alerta de evacuación.|Vigile las confirmaciones y los registros.|Anote cada cambio de estado; cierre solo cuando se confirme el fin de alerta.',
+  'instr.medical.occupant':
+    'Mantenga el área despejada.|Si está capacitado, inicie la RCP cuando se le indique.',
+  'instr.medical.responder':
+    'Traiga el DEA resaltado.|Traiga el botiquín del puesto más cercano.|Registre el estado del paciente al llegar.',
+  'instr.medical.operator':
+    'Envíe al socorrista más cercano.|Llame a los servicios de emergencia si aún no se ha hecho.|Mantenga despejada la ruta hasta el paciente.',
+  'instr.lockdown.occupant':
+    'Entre en la sala más cercana que se cierre con llave.|Cierre y bloquee la puerta, apague las luces, guarde silencio.|No abra la puerta hasta que la consola anuncie el fin de alerta.',
+  'instr.lockdown.responder':
+    'Mantenga su posición salvo indicación contraria.|Informe su ubicación y el recuento de personas mediante el registro.',
+  'instr.lockdown.operator':
+    'Difunda la alerta de confinamiento.|Siga los registros por ubicación.|Coordine con las fuerzas del orden; anuncie el fin de alerta solo con su confirmación.',
+  'instr.outage.occupant':
+    'Permanezca donde está salvo que le indiquen moverse.|No use los ascensores.',
+  'instr.outage.responder':
+    'Revise los ascensores por si hay personas atrapadas.|Verifique el equipo crítico con energía de emergencia.',
+  'instr.outage.operator':
+    'Confirme la transferencia al generador.|Registre las áreas afectadas.|Escale a mantenimiento.',
+  'instr.severe_weather.occupant':
+    'Vaya a una sala interior o zona de refugio.|Aléjese de las ventanas.|No salga del edificio.',
+  'instr.severe_weather.responder':
+    'Aleje a las personas de las zonas acristaladas.|Compruebe la capacidad de las zonas de refugio.',
+  'instr.severe_weather.operator':
+    'Difunda la orden de refugiarse en el lugar.|Siga el parte meteorológico si hay conexión; registre las condiciones si no la hay.',
+  'instr.hazmat.occupant':
+    'Salga por la ruta resaltada, a contraviento de la fuga.|No toque el material derramado.',
+  'instr.hazmat.responder': 'Aísle el área en el radio marcado.|No entre sin equipo de protección.',
+  'instr.hazmat.operator':
+    'Difunda la evacuación de las plantas afectadas.|Avise a materiales peligrosos y mantenimiento.',
+  'instr.other.occupant': 'Espere instrucciones de la consola.',
+  'instr.other.responder': 'Preséntese ante el operador para recibir instrucciones.',
+  'instr.other.operator':
+    'Describa el incidente en el registro.|Elija un perfil de ruta manualmente.',
+  'type.fire': 'Incendio',
+  'type.medical': 'Emergencia médica',
+  'type.lockdown': 'Confinamiento',
+  'type.outage': 'Corte de energía / servicios',
+  'type.severe_weather': 'Clima severo',
+  'type.hazmat': 'Material peligroso',
+  'type.other': 'Otro incidente',
+  'checkin.safe': 'Estoy a salvo',
+  'checkin.evacuated': 'Evacuado',
+  'checkin.needs_help': 'Necesito ayuda',
+  'ack.acknowledge': 'Confirmar',
+  'ack.acknowledged': 'Confirmado',
+  'rtl.notice':
+    'La dirección del texto sigue al idioma. El mapa y las flechas de ruta no se invierten.',
+};
+
+const ar: Record<string, string> = {
+  'status.ready': 'جاهز',
+  'status.degraded': 'متدهور',
+  'status.error': 'خطأ',
+  'band.full': 'متصل',
+  'band.degraded': 'اتصال ضعيف',
+  'band.local': 'غير متصل',
+  'outbox.pending': 'صندوق الصادر {n}',
+  'fixture.badge': 'نموذج هندسي تجريبي — ليس موقعًا حقيقيًا',
+  'route.evacuate': 'إخلاء — اتبع المسار المميز إلى أقرب مخرج آمن. لا تستخدم المصاعد.',
+  'route.medical':
+    'حالة طبية — أقرب جهاز إزالة رجفان وإسعافات أولية مميزان. أرسل شخصًا لإحضار الجهاز.',
+  'route.lockdown': 'إغلاق — انتقل إلى أقرب غرفة يمكن إقفالها، أقفل الأبواب، وأسكت الأجهزة.',
+  'route.outage': 'انقطاع الكهرباء — إضاءة الطوارئ تعمل. السلالم والمخارج محددة؛ المصاعد متوقفة.',
+  'route.severe_weather':
+    'احتماء — انتقل إلى الغرف الداخلية بعيدًا عن الزجاج. تجنب المخارج حتى إعلان انتهاء الخطر.',
+  'route.hazmat': 'مواد خطرة — أخلِ المكان بعيدًا عن التسرب. المسارات تتجنب منطقة الخطر.',
+  'route.other': 'حادث — اتبع تعليمات المشغل.',
+  'alert.fire.title': 'أخلِ المكان الآن',
+  'alert.fire.body': 'تم الإبلاغ عن حريق. اخرج من أقرب مخرج آمن يظهر على جهازك. لا تستخدم المصاعد.',
+  'alert.medical.title': 'استجابة طبية',
+  'alert.medical.body':
+    'حالة طبية طارئة جارية. المستجيبون المدرَّبون: أحضروا أقرب جهاز إزالة رجفان.',
+  'alert.lockdown.title': 'إغلاق',
+  'alert.lockdown.body':
+    'الإغلاق ساري المفعول. انتقل إلى غرفة يمكن إقفالها، أقفل الباب، والزم الصمت. انتظر إعلان انتهاء الخطر.',
+  'alert.outage.title': 'انقطاع الكهرباء',
+  'alert.outage.body': 'الكهرباء مقطوعة. إضاءة الطوارئ تعمل. لا تستخدم المصاعد. انتظر التعليمات.',
+  'alert.severe_weather.title': 'احتمِ في مكانك',
+  'alert.severe_weather.body':
+    'طقس شديد. انتقل إلى الغرف الداخلية بعيدًا عن النوافذ. لا تغادر المبنى.',
+  'alert.hazmat.title': 'إخلاء — تسرب مواد خطرة',
+  'alert.hazmat.body': 'تسربت مواد خطرة. أخلِ المكان عبر المسار على جهازك متجنبًا المنطقة المحددة.',
+  'alert.other.title': 'إشعار حادث',
+  'alert.other.body': 'تم الإعلان عن حادث. انتظر التعليمات.',
+  'instr.fire.occupant':
+    'اخرج الآن عبر المسار المميز.|لا تستخدم المصاعد.|أغلق الأبواب خلفك.|توجه إلى نقطة التجمع وسجّل حضورك.',
+  'instr.fire.responder':
+    'اقترب عبر مسار المستجيبين؛ منطقة الخطر محددة.|تأكد من منطقة الإنذار وافحص الغرف الأقرب إلى الخطر.|أبلغ عن الأوضاع في سجل الحادث.',
+  'instr.fire.operator':
+    'أذع تنبيه الإخلاء.|راقب التأكيدات وتسجيلات الحضور.|سجّل كل تغيير في الحالة؛ لا تُغلق الحادث إلا بعد تأكيد انتهاء الخطر.',
+  'instr.medical.occupant':
+    'أبقِ المنطقة خالية.|إذا كنت مدرّبًا، ابدأ الإنعاش القلبي الرئوي عند الطلب.',
+  'instr.medical.responder':
+    'أحضر جهاز إزالة الرجفان المميز.|أحضر حقيبة الإسعافات الأولية من أقرب محطة.|سجّل حالة المريض عند الوصول.',
+  'instr.medical.operator':
+    'أرسل أقرب مستجيب.|اتصل بخدمات الطوارئ الطبية إن لم يتم ذلك بعد.|أبقِ المسار إلى المريض خاليًا.',
+  'instr.lockdown.occupant':
+    'ادخل أقرب غرفة يمكن إقفالها.|أقفل الباب وحصّنه، أطفئ الأنوار، والزم الصمت.|لا تفتح الباب حتى تعلن وحدة التحكم انتهاء الخطر.',
+  'instr.lockdown.responder':
+    'حافظ على موقعك ما لم يُطلب منك غير ذلك.|أبلغ عن موقعك وعدد الأشخاص عبر تسجيل الحضور.',
+  'instr.lockdown.operator':
+    'أذع تنبيه الإغلاق.|تابع تسجيلات الحضور حسب الموقع.|نسّق مع جهات إنفاذ القانون؛ لا تعلن انتهاء الخطر إلا بتأكيدهم.',
+  'instr.outage.occupant': 'ابقَ مكانك ما لم يُطلب منك التحرك.|لا تستخدم المصاعد.',
+  'instr.outage.responder':
+    'افحص المصاعد بحثًا عن أشخاص محتجزين.|تحقق من المعدات الحرجة على طاقة الطوارئ.',
+  'instr.outage.operator':
+    'تأكد من التحويل إلى المولد.|سجّل المناطق المتأثرة.|صعّد الأمر إلى إدارة المرافق.',
+  'instr.severe_weather.occupant':
+    'انتقل إلى غرفة داخلية أو منطقة احتماء.|ابتعد عن النوافذ.|لا تغادر المبنى.',
+  'instr.severe_weather.responder':
+    'وجّه الناس بعيدًا عن المناطق الزجاجية.|تحقق من سعة مناطق الاحتماء.',
+  'instr.severe_weather.operator':
+    'أذع أمر الاحتماء في المكان.|تابع نشرة الطقس عند الاتصال؛ وسجّل الأوضاع عند انقطاعه.',
+  'instr.hazmat.occupant':
+    'اخرج عبر المسار المميز عكس اتجاه الريح من التسرب.|لا تلمس المواد المنسكبة.',
+  'instr.hazmat.responder': 'اعزل المنطقة ضمن نصف القطر المحدد.|لا تدخل دون معدات الحماية.',
+  'instr.hazmat.operator': 'أذع الإخلاء للطوابق المتأثرة.|أبلغ فريق المواد الخطرة وإدارة المرافق.',
+  'instr.other.occupant': 'انتظر التعليمات من وحدة التحكم.',
+  'instr.other.responder': 'راجع المشغل لتلقي المهمة.',
+  'instr.other.operator': 'صف الحادث في السجل.|اختر ملف التوجيه يدويًا.',
+  'type.fire': 'حريق',
+  'type.medical': 'حالة طبية',
+  'type.lockdown': 'إغلاق',
+  'type.outage': 'انقطاع الكهرباء / الخدمات',
+  'type.severe_weather': 'طقس شديد',
+  'type.hazmat': 'مواد خطرة',
+  'type.other': 'حادث آخر',
+  'checkin.safe': 'أنا بخير',
+  'checkin.evacuated': 'تم الإخلاء',
+  'checkin.needs_help': 'أحتاج مساعدة',
+  'ack.acknowledge': 'تأكيد',
+  'ack.acknowledged': 'تم التأكيد',
+  'rtl.notice': 'اتجاه النص يتبع اللغة. الخريطة وأسهم المسار لا تنعكس.',
+};
+
+export const CATALOGUES: Record<Lang, Catalogue> = {
+  en: { lang: 'en', name: 'English', dir: 'ltr', provenance: 'source language', strings: en },
+  es: {
+    lang: 'es',
+    name: 'Español',
+    dir: 'ltr',
+    provenance:
+      'draft translation — requires native emergency-management review before real deployment',
+    strings: es,
+  },
+  ar: {
+    lang: 'ar',
+    name: 'العربية',
+    dir: 'rtl',
+    provenance:
+      'draft translation — requires native emergency-management review before real deployment',
+    strings: ar,
+  },
+};

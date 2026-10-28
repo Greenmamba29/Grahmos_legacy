@@ -1,0 +1,55 @@
+{
+  "name": "@terranova/core",
+  "version": "0.1.0",
+  "description": "TerraNova core: pure, framework-free domain for offline-first emergency resilience, communications, and SafetyMap routing.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./crypto": {
+      "types": "./dist/crypto/index.d.ts",
+      "import": "./dist/crypto/index.js"
+    },
+    "./connectivity": {
+      "types": "./dist/connectivity/index.d.ts",
+      "import": "./dist/connectivity/index.js"
+    },
+    "./readiness": {
+      "types": "./dist/readiness/index.d.ts",
+      "import": "./dist/readiness/index.js"
+    },
+    "./comms": {
+      "types": "./dist/comms/index.d.ts",
+      "import": "./dist/comms/index.js"
+    },
+    "./safetymap": {
+      "types": "./dist/safetymap/index.d.ts",
+      "import": "./dist/safetymap/index.js"
+    },
+    "./pack": {
+      "types": "./dist/pack/index.d.ts",
+      "import": "./dist/pack/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@noble/ed25519": "^3.0.0",
+    "@noble/hashes": "^2.0.0",
+    "fflate": "^0.8.2",
+    "minisearch": "^7.1.0"
+  },
+  "devDependencies": {
+    "@types/geojson": "^7946.0.15"
+  }
+}
